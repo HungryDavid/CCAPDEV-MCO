@@ -23,8 +23,17 @@ const laboratorySchema = new mongoose.Schema({
   closeTime: {
     type: String,  // Add close time for each lab
     required: [true, 'A lab must have a close time']
-  }
-}, {
+  }, deleted: {
+    type: Boolean,
+    default: false,
+    select: false, // hide by default
+  },
+  deletedAt: {
+    type: Date,
+    select: false,
+  }, 
+},
+{
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
@@ -37,35 +46,52 @@ laboratorySchema.virtual('reservations', {
   localField: '_id'
 });
 
-// Static Method: Create a new lab
-laboratorySchema.statics.createLab = async function(labData) {
-  return await this.create(labData); // Calls Mongoose's built-in `create()` method
+
+laboratorySchema.statics.doesLabExist = function (name) {
+  return this.findOne({ name, deleted: false });
 };
 
-// Static Method: Get all labs with filtering support
-laboratorySchema.statics.getAllLabs = function(queryObj) {
+laboratorySchema.statics.createLab = async function (labData) {
+  if (!labData.name) {
+    throw new Error("Lab name is required");
+  }
+
+  const existingLab = await this.findOne({ name: labData.name });
+
+  if (existingLab) {
+    throw new Error("Laboratory already exists");
+  }
+
+  return await this.create(labData);
+};
+
+laboratorySchema.statics.getAllLabs = function (queryObj) {
   const excludedFields = ['page', 'sort', 'limit', 'fields'];
   const filterData = { ...queryObj };
   excludedFields.forEach(el => delete filterData[el]);
-  
+
   return this.find(filterData).lean();  // Return all labs based on the filterData
 };
 
 // Static Method: Get one lab by ID
-laboratorySchema.statics.getLabById = async function(id) {
+laboratorySchema.statics.getLabById = async function (id) {
   return await this.findById(id);
 };
 
-laboratorySchema.statics.updateLab = async function(id, updateData) {
-  return await this.findByIdAndUpdate(id, updateData, {
-    returnDocument: 'after',
-    runValidators: true
+laboratorySchema.statics.updateLab = function (id, updateData) {
+  return this.findByIdAndUpdate(id, updateData, {
+    new: true, // return updated document
+    runValidators: true, // validate updates
   });
 };
 
 // Static Method: Delete a lab by ID
-laboratorySchema.statics.deleteLab = async function(id) {
-  return await this.findByIdAndDelete(id);
+laboratorySchema.statics.deleteLab = function (id) {
+  return this.findByIdAndUpdate(
+    id,
+    { deleted: true, deletedAt: Date.now() },
+    { new: true }
+  );
 };
 
 module.exports = mongoose.model('Laboratory', laboratorySchema);

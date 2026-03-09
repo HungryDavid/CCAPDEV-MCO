@@ -25,13 +25,12 @@ const getRegisterPage = (req, res) => {
 //LOGINS USER
 const loginUser = async (req, res) => {
     try {
-        const { email, password, rememberMe } = req.body;
-        const user = await User.loginUser(email, password);
+        const { identifier, password, rememberMe } = req.body;
+        const user = await User.loginUser(identifier, password);
 
         req.session.userId = user._id;
         req.session.role = user.role;
 
-        console.log("AuthController LoginUser");
         if (rememberMe) {
             req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 21; // 21 Days
         } else {
@@ -80,6 +79,7 @@ const registerUser = async (req, res, next) => {
         await User.createUser({ email, idNumber, password, rememberMe });
         res.redirect('/login');
     } catch (error) {
+        console.log(error);
         req.flash('error', error.message);
         return res.redirect('/register');
     }

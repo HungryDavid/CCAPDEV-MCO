@@ -79,10 +79,9 @@ userSchema.virtual('reservations', {
 
 // --- MIDDLEWARE (HOOKS) ---
 // Pre-save hook to hash the password before saving the user
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+userSchema.pre('save', async function () {
+  if (!this.isModified('password')) return;
   this.password = await bcrypt.hash(this.password, 12);
-  next();
 });
 
 userSchema.index({ email: 1, idNumber: 1 });
@@ -97,7 +96,7 @@ userSchema.statics.doesUserExist = async function (email, idNumber) {
 };
 
 //DOC LEVEL
-userSchema.methods.isCorrectPassword = async function(candidatePassword) {
+userSchema.methods.isCorrectPassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
@@ -111,10 +110,10 @@ userSchema.statics.createUser = async function (userData) {
   }
 
   // Check if email or ID number already exists
-  const doesUserExist = await this.doesUserExist(email, idNumber);
+  const exisitingUser = await this.doesUserExist(email, idNumber);
 
-  if (doesUserExist) {
-    const field = doesUserExist.email === email ? 'Email' : 'ID Number';
+  if (exisitingUser) {
+    const field = exisitingUser.email === email ? 'Email' : 'ID Number';
     throw new Error(`${field} is already registered.`);
   }
 
@@ -174,7 +173,7 @@ userSchema.statics.deleteUser = async function (userId) {
   }
 
   const user = await this.readUserById(userId);
-  
+
   if (!user) {
     throw new Error('User not found.');
   }
@@ -185,12 +184,16 @@ userSchema.statics.deleteUser = async function (userId) {
 
 
 // Login a user with email and password
-userSchema.statics.loginUser = async function(email, password) {
-  if (!email || !password) {
-    throw new Error('Please provide both email and password');
+userSchema.statics.loginUser = async function (identifier, password) {
+  if (!identifier || !password) {
+    throw new Error('Please provide both email/ID and password');
   }
 
-  const user = await this.findOne({ email }).select('+password');
+  const query = identifier.includes('@') 
+    ? { email: identifier.toLowerCase() } 
+    : { idNumber: identifier };
+
+  const user = await this.findOne(query).select('+password');
   if (!user) {
     throw new Error('Invalid credentials');
   }
@@ -235,9 +238,5 @@ userSchema.statics.readUserSafeAndPublic = async function (identifier) {
     .select('-password');
 };
 
-
-
-
-
 const User = mongoose.model('User', userSchema);
-module.exports = User; // Export the User model
+module.exports = User; // Export the User model 

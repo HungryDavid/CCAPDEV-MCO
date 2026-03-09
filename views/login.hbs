@@ -1,9 +1,9 @@
 <form action="/login" method="POST">
     <!-- ID Number Input -->
     <div class="mb-3">
-        <label for="email" class="form-label text-white">Email</label>
-        <input type="email" class="form-control border-2 border-success" id="email" placeholder="email@dlsu.edu.ph"
-            name="email" pattern=".+@dlsu\.edu\.ph" required title="Please use a valid @dlsu.edu.ph email address" value="{{user.email}}">
+        <label for="identifier" class="form-label text-white">Email or ID Number</label>
+        <input type="text" class="form-control border-2 border-success" id="identifier" name="identifier"
+            placeholder="email@dlsu.edu.ph or 8-digit ID" pattern="(.+@dlsu\.edu\.ph|\d{8})" required>
     </div>
 
     <!-- Password Input -->
