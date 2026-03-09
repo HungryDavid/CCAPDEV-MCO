@@ -20,9 +20,14 @@ const reservationSchema = new mongoose.Schema({
     required: true
   },
   timeSlots: {
-    type: [String], // e.g. ["09:00","09:30","10:00"]
+    type: [String], // e.g. ["09:00","09:30"]
     required: true,
     validate: [arr => arr.length > 0, 'Must select at least one slot']
+  },
+  seatNumbers: {
+    type: [Number], // e.g. [1,2,5]
+    required: true,
+    validate: [arr => arr.length > 0, 'Must select at least one seat']
   },
   createdAt: {
     type: Date,
@@ -39,23 +44,35 @@ const reservationSchema = new mongoose.Schema({
  * @param {Array} requestedSlots 
  * @returns {Boolean}
  */
-reservationSchema.statics.areSlotsAvailable = async function(labId, date, requestedSlots, excludeReservationId = null) {
-  const filter = { laboratory: labId, date };
+reservationSchema.statics.areSeatsAvailable = async function(laboratory, date, timeSlots, seatNumbers, excludeReservationId = null) {
+  const filter = { laboratory, date };
   if (excludeReservationId) filter._id = { $ne: excludeReservationId };
 
   const existingReservations = await this.find(filter);
-  const reservedSlots = existingReservations.flatMap(r => r.timeSlots);
-  return !requestedSlots.some(slot => reservedSlots.includes(slot));
+  for (const time of timeSlots) {
+    const reservedSeats = existingReservations
+      .filter(r => r.timeSlots.includes(time))
+      .flatMap(r => r.seatNumbers);
+
+    if (seatNumbers.some(seat => reservedSeats.includes(seat))) return false;
+  }
+  return true;
 };
 
 /**
  * Create a new reservation safely
  */
-reservationSchema.statics.createReservation = async function({ studentId, anonymous, laboratory, date, timeSlots }) {
-  const available = await this.areSlotsAvailable(laboratory, date, timeSlots);
-  if (!available) throw new Error('One or more selected slots are already reserved');
+reservationSchema.statics.createReservation = async function({ studentId, anonymous, laboratory, date, timeSlots, seatNumbers }) {
+  // Check conflicts for each time slot
+  for (const time of timeSlots) {
+    const existing = await this.find({ laboratory, date, timeSlots: time });
+    const reservedSeats = existing.flatMap(r => r.seatNumbers);
 
-  return this.create({ studentId, anonymous, laboratory, date, timeSlots });
+    const conflict = seatNumbers.some(seat => reservedSeats.includes(seat));
+    if (conflict) throw new Error(`One or more seats are already reserved at ${time}`);
+  }
+
+  return this.create({ studentId, anonymous, laboratory, date, timeSlots, seatNumbers });
 };
 
 /**
@@ -111,5 +128,23 @@ reservationSchema.statics.getReservationById = async function(id) {
   if (!res) throw new Error('Reservation not found');
   return res;
 };
+
+reservationSchema.statics.parseSelections = function(selections) {
+  const selectionsArray = Array.isArray(selections) ? selections : [selections];
+
+  const timeSlots = [];
+
+  selectionsArray.forEach(item => {
+    const [, time] = item.split("|");
+
+    if (time && !timeSlots.includes(time)) {
+      timeSlots.push(time);
+    }
+  });
+
+  return timeSlots;
+};
+
+
 
 module.exports = mongoose.model('Reservation', reservationSchema);

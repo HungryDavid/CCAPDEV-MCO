@@ -93,6 +93,7 @@ app.use(async (req, res, next) => {
 });
 
 // Route definitions (Protected routes use authentication middleware)
+app.use('/reservations', ensureAuthenticated, require('./routes/reservations-routes'));
 app.use('/slots-availability', ensureAuthenticated, require('./labs/labs-routes'));
 app.use('/search-user', ensureAuthenticated, require('./users/search-user-routes'));
 app.use('/manage-labs', ensureAuthenticated, require('./labs/manage-labs-routes'));

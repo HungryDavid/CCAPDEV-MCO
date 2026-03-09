@@ -1,28 +1,39 @@
-// This function will be used when the modal is triggered
+function to24HourFormat(timeStr) {
+    // Converts "2:30 PM" -> "14:30"
+    const [time, modifier] = timeStr.split(' ');
+    let [hours, minutes] = time.split(':').map(Number);
+
+    if (modifier === 'PM' && hours !== 12) {
+        hours += 12;
+    } else if (modifier === 'AM' && hours === 12) {
+        hours = 0;
+    }
+
+    // Pad with 0
+    const hh = String(hours).padStart(2, '0');
+    const mm = String(minutes).padStart(2, '0');
+
+    return `${hh}:${mm}`;
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const editModal = document.getElementById('editLabModal');
 
-    // Adding event listener to the modal show event
     editModal.addEventListener('show.bs.modal', function (event) {
-        // Button that triggered the modal
         const button = event.relatedTarget;
-
-        // Get the row that the button belongs to
         const row = button.closest('tr');
 
-        // Extract values from the table row
-        const name = row.querySelector('td:nth-child(1)').textContent.trim(); // Lab Name
-        const openTime = row.querySelector('td:nth-child(2)').textContent.trim(); // Open Time
-        const closeTime = row.querySelector('td:nth-child(3)').textContent.trim(); // Close Time
-        const capacity = row.querySelector('td:nth-child(4)').textContent.trim(); // Capacity
-
-        // Get the lab ID from the "Edit" button's data-id attribute
+        const name = row.querySelector('td:nth-child(1)').textContent.trim();
+        let openTime = row.querySelector('td:nth-child(2)').textContent.trim();
+        let closeTime = row.querySelector('td:nth-child(3)').textContent.trim();
+        const capacity = row.querySelector('td:nth-child(4)').textContent.trim();
         const id = button.getAttribute('data-id');
 
-        // Update the form action with the correct lab ID
-        document.getElementById('editLabForm').action = "/manage-labs/edit/" + id;
+        // Convert times to 24-hour
+        openTime = to24HourFormat(openTime);
+        closeTime = to24HourFormat(closeTime);
 
-        // Set the values in the modal input fields
+        document.getElementById('editLabForm').action = "/manage-labs/edit/" + id;
         document.getElementById('editName').value = name;
         document.getElementById('editOpenTime').value = openTime;
         document.getElementById('editCloseTime').value = closeTime;
@@ -34,9 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     deleteModal.addEventListener('show.bs.modal', function (event) {
         const button = event.relatedTarget;
-        const labId = button.getAttribute('data-id');
         const id = button.getAttribute('data-id');
-
         deleteForm.action = "/manage-labs/delete/" + id;
     });
 });
