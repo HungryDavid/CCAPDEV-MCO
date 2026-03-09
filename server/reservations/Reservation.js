@@ -37,27 +37,7 @@ const reservationSchema = new mongoose.Schema({
   timestamps: true
 });
 
-/**
- * Check if requested slots are available
- * @param {ObjectId} labId 
- * @param {String} date 
- * @param {Array} requestedSlots 
- * @returns {Boolean}
- */
-reservationSchema.statics.areSeatsAvailable = async function(laboratory, date, timeSlots, seatNumbers, excludeReservationId = null) {
-  const filter = { laboratory, date };
-  if (excludeReservationId) filter._id = { $ne: excludeReservationId };
 
-  const existingReservations = await this.find(filter);
-  for (const time of timeSlots) {
-    const reservedSeats = existingReservations
-      .filter(r => r.timeSlots.includes(time))
-      .flatMap(r => r.seatNumbers);
-
-    if (seatNumbers.some(seat => reservedSeats.includes(seat))) return false;
-  }
-  return true;
-};
 
 /**
  * Create a new reservation safely

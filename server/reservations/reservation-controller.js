@@ -1,4 +1,6 @@
 const Reservation = require('./Reservation');
+const Laboratory = require('../labs/Lab');
+
 
 exports.createReservation = async (req, res) => {
   try {
@@ -6,26 +8,49 @@ exports.createReservation = async (req, res) => {
     const studentId = req.user?._id || null;
     const anonymous = !req.user;
 
-    if (!selections || Object.keys(selections).length === 0) {
-      return res.status(400).json({ error: "No seats selected" });
+    // Ensure that the necessary fields are provided
+    if (!labId || !date || !selections || Object.keys(selections).length === 0) {
+      return res.status(400).json({ error: "Invalid request, missing labId, date or selections." });
     }
 
-    // Loop through each time slot
+    // Loop through each time slot and validate seat availability
     for (const [time, seats] of Object.entries(selections)) {
+      const seatNumbers = seats.map(Number); // Ensure seats are in number format
+
+      // Check if the selected seats are available for this time slot
+      const isAvailable = await Laboratory.areSeatsAvailable(
+        labId,
+        date,
+        [time], // Single time slot
+        seatNumbers
+      );
+
+      if (!isAvailable) {
+        return res.status(400).json({
+          error: `One or more seats for time slot ${time} are already reserved.`,
+        });
+      }
+
+      console.log("hello");
+
+      // Create reservation for this time slot
       await Reservation.createReservation({
         studentId,
         anonymous,
         laboratory: labId,
         date,
         timeSlots: [time],
-        seatNumbers: seats.map(Number)
+        seatNumbers,
       });
     }
-
-    res.status(201).json({ message: "Reservation created successfully" });
+    res.render('/user/me');
   } catch (err) {
     console.error(err);
-    res.status(400).json({ error: err.message });
+    // More specific error messages can be added for various error types
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ error: err.message });
+    }
+    res.status(500).json({ error: "An error occurred while processing your reservation." });
   }
 };
 
@@ -104,34 +129,3 @@ exports.deleteReservation = async (req, res) => {
 
   }
 };
-
-exports.getAvailability = async (req, res) => {
-  try {
-    const { labId } = req.params;
-    const { date, time } = req.query;
-
-    // Build filter
-    const filter = { laboratory: labId, date };
-    if (time) filter.timeSlots = time; // filter by specific time if provided
-
-    // Fetch reservations from the model
-    const reservations = await Reservation.getReservations(filter);
-
-    // Build reservedSeats object: { "14:30": [1,2,3], ... }
-    const reservedSeats = {};
-
-    reservations.forEach(r => {
-      r.timeSlots.forEach(slot => {
-        if (!reservedSeats[slot]) reservedSeats[slot] = [];
-        if (r.seatNumbers) reservedSeats[slot].push(...r.seatNumbers);
-      });
-    });
-
-    res.json(reservedSeats);
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Could not fetch availability' });
-  }
-};
-

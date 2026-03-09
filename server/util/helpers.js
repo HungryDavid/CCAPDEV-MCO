@@ -11,8 +11,6 @@ module.exports = {
     // 2. EQUALITY CHECK
     // Usage: {{#if (eq user.role "technician")}} ... {{/if}}
     eq: function (a, b) {
-       // console.log( a === b);
-       console.log(a + "vs" + b + ", " + (a===b)) ;
         return a === b;
         
     },

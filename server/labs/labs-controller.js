@@ -23,67 +23,6 @@ exports.getManageLabsPage = async (req, res) => {
   }
 };
 
-// exports.getSlotsAvailabilityPage = async (req, res) => {
-//   try {
-//     const selectedDate = req.query.bookingDate || getNextNDates(7)[0];
-//     const selectedLabId = req.query.labName || null;
-
-//     const todayStr = new Date().toISOString().split('T')[0];
-//     const isToday = selectedDate === todayStr;
-
-//     // Generate next 7 dates and time slots
-//     const availableDates = getNextNDates(7);
-//     const allTimeSlots = getTimeSlots(isToday);
-
-//     // Fetch all labs or filtered by selected lab
-//     let labsQuery = {};
-//     if (selectedLabId) labsQuery._id = selectedLabId;
-//     const allLabs = await Laboratory.getAllLabs(labsQuery);
-
-//     // Compute available slots per lab
-//     const labsWithAvailableSlots = [];
-
-//     for (const lab of allLabs) {
-//       // Generate all possible slots within lab open-close time
-//       const labSlots = allTimeSlots.filter(
-//         slot => slot >= lab.openTime && slot < lab.closeTime
-//       );
-
-//       // Fetch existing reservations for this lab/date
-//       const reservations = await Reservation.find({
-//         laboratory: lab._id,
-//         date: selectedDate
-//       }).lean();
-
-//       const reservedSlots = reservations.flatMap(r => r.timeSlots);
-
-//       // Available slots = labSlots - reservedSlots
-//       const availableSlots = labSlots.filter(slot => !reservedSlots.includes(slot));
-
-//       labsWithAvailableSlots.push({
-//         ...lab,
-//         availableSlots
-//       });
-//     }
-
-//     res.render('slots-availability', {
-//       title: 'Slots Availability',
-//       headerTitle: 'Slots Availability',
-//       layout: 'dashboard',
-//       currentDate: todayStr,
-//       activePage: 'slots-availability',
-//       availableDates,
-//       selectedDate,
-//       labs: labsWithAvailableSlots,
-//       selectedLabId
-//     });
-
-//   } catch (err) {
-//     console.error(err);
-//     res.redirect('/');
-//   }
-//};
-
 exports.getLabSlotsAvailabilityCount = async (req, res) => {
   try {
     const selectedDate = req.query.bookingDate || getNextNDates(7)[0];
@@ -249,63 +188,32 @@ exports.getLabSeatsAvailability = async (req, res) => {
   try {
     const labId = await Laboratory.getIdByName(req.params.id);
 
-
     // Get selected date & time from query
     const selectedDate = req.query.bookingDate;
     const selectedTime = req.query.bookingTime;
 
     // Fetch lab
-    const lab = await Laboratory.findById(labId).lean();
-    if (!lab) return res.status(404).send("Lab not found");
+    const lab = await Laboratory.getLabById(labId);
+    // Make sure lab is a plain object (if .lean() wasn't enough)
+    const plainLab = JSON.parse(JSON.stringify(lab));
 
-    // Generate slots for selected date
-    const isToday =
-      selectedDate === new Date().toISOString().split("T")[0];
 
-    const timeSlots = getTimeSlots(
-      isToday,
-      30,
-      lab.openTime,
-      lab.closeTime,
-      selectedDate // ✅ IMPORTANT FIX
-    );
+    console.log(lab);
+    // Generate time slots
+    const isToday = selectedDate === new Date().toISOString().split("T")[0];
+    const timeSlots = getTimeSlots(isToday, 30, lab.openTime, lab.closeTime, selectedDate);
 
-    // Get reservations for selected date
-    const reservations = await Reservation.find({
-      laboratory: lab._id,
-      date: selectedDate
-    }).lean();
-
-    // Build flattened seat grid
-    const flattenedSeats = [];
-
-    for (let seat = 1; seat <= lab.capacity; seat++) {
-      timeSlots.forEach(time => {
-        const reserved = reservations.some(
-          r =>
-            r.seatNumber === seat &&
-            r.timeSlots.includes(time)
-        );
-
-        flattenedSeats.push({
-          seatNumber: seat,
-          time,
-          reserved
-        });
-      });
-    }
+    // Flattened seat availability
+    const flattenedSeats = await Laboratory.generateFlattenedSeats(lab, timeSlots, selectedDate);
 
     // Session selections
     const selectedSeats = req.session.selectedSeats || [];
     const selectedTimes = req.session.selectedTimes || [];
-
     const formattedSelectedTimes = selectedTimes.join(", ");
 
-    console.log("selected time " + selectedTime);
-    console.log(flattenedSeats);
 
     res.render("lab-details", {
-      lab,
+      lab: plainLab,
       selectedDate,
       selectedTime,
       timeSlots,
@@ -376,3 +284,45 @@ function getNextNDates(n = 7) {
 
   return dates;
 }
+
+exports.getLabFlattenedSeats = async (req, res) => {
+  try {
+    // Ensure the labId is fetched correctly from the lab name
+    const labId = await Laboratory.getIdByName(req.params.id);
+    if (!labId) {
+      return res.status(404).json({ error: 'Lab not found' });
+    }
+
+    // Fetch selectedDate from query params
+    const selectedDate = req.query.bookingDate;
+    if (!selectedDate) {
+      return res.status(400).json({ error: 'Booking date is required' });
+    }
+
+    // Get lab details using the labId
+    const lab = await Laboratory.getLabById(labId);
+    if (!lab) {
+      return res.status(404).json({ error: 'Lab details not found' });
+    }
+
+    // Determine if the selected date is today
+    const isToday = new Date(selectedDate).toDateString() === new Date().toDateString();
+
+    // Get time slots for the lab
+    const timeSlots = getTimeSlots(isToday, 30, lab.openTime, lab.closeTime, selectedDate);
+
+    // Generate flattened seats
+    const flattenedSeats = await Laboratory.generateFlattenedSeats(lab, timeSlots, selectedDate);
+
+    // Log for debugging (optional)
+    
+
+    // Return the flattened seats as a JSON response
+    res.json(flattenedSeats);
+  } catch (err) {
+    console.error("Error fetching lab details:", err);
+    res.status(500).json({ error: "An error occurred while fetching lab details" });
+  }
+};
+
+

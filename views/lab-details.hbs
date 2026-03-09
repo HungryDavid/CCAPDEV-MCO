@@ -2,8 +2,9 @@
   <p><strong>Date:</strong> {{selectedDate}}</p>
 
   <!-- TIME SELECT FORM -->
-  <form id="timeSelectForm" method="GET" action="/labs/slots-availability/{{lab.name}}?bookingDate={{selectedDate}}&bookingTime={{selectedTime}}">
-    <input type="hidden" name="bookingDate" value="{{selectedDate}}">
+  <form id="timeSelectForm" method="GET"
+    action="/labs/slots-availability/{{lab.name}}?bookingDate={{selectedDate}}&bookingTime={{selectedTime}}">
+    <input type="hidden" name="bookingDate" value="{{selectedDate}}" id="bookingDate">
 
     <div class="row mb-3">
       <div class="col-md-4">
@@ -44,7 +45,7 @@
   <!-- Add To Cart -->
   <div class="text-center mt-3">
     <button id="openCartBtn" class="btn btn-success">
-      Add to Cart <span id="totalSelected">(0)</span>
+      Add to Cart
     </button>
   </div>
 
@@ -75,4 +76,6 @@
   </div>
 
   <!-- Load External JS -->
-  <script src="/js/lab-details.js"></script>
+  <script src="/js/lab-details.js">
+
+  </script>
