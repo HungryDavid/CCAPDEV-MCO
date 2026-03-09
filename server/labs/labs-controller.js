@@ -84,7 +84,7 @@ exports.getManageLabsPage = async (req, res) => {
 //   }
 //};
 
-exports.getLabSlotAvailabilityCount = async (req, res) => {
+exports.getLabSlotsAvailabilityCount = async (req, res) => {
   try {
     const selectedDate = req.query.bookingDate || getNextNDates(7)[0];
     const selectedTime = req.query.bookingTime || null; // single slot or null
@@ -245,9 +245,10 @@ exports.deleteLab = async (req, res) => {
   }
 };
 
-exports.getLabDetails = async (req, res) => {
+exports.getLabSeatsAvailability = async (req, res) => {
   try {
-    const labId = req.params.id;
+    const labId = await Laboratory.getIdByName(req.params.id);
+
 
     // Get selected date & time from query
     const selectedDate =

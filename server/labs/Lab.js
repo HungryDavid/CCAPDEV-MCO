@@ -84,4 +84,12 @@ laboratorySchema.statics.deleteLab = function (id) {
   return this.findByIdAndDelete(id);
 };
 
+laboratorySchema.statics.getIdByName = async function (labName) {
+  const lab = await this.findOne({ name: labName }).select('_id'); // Only select _id
+  if (!lab) {
+    throw new Error(`Lab with name "${labName}" not found`);
+  }
+  return await lab._id; // Return the ObjectId
+};
+
 module.exports = mongoose.model('Laboratory', laboratorySchema);

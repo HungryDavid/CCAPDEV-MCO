@@ -71,7 +71,7 @@
         <div class="navbar-nav flex-column w-100 mt-2" id="sidebarNav">
             <ul class="navbar-nav flex-column w-100">
                 <li>
-                    <a href="/labs/slot-availability" class="nav-link {{navLinkClass activePage 'slots-availability'}}">
+                    <a href="/labs/slots-availability" class="nav-link {{navLinkClass activePage 'slots-availability'}}">
                         <i class="fa-solid fa-desktop"></i>
                         <span class="nav-text">Slots Availability</span>
                     </a>
@@ -141,7 +141,7 @@
                 
                 {{#hasRole user "technician,student"}}
                 <li>
-                    <form action="/logout" method="POST" class="d-inline w-100">
+                    <form action="/auth/logout" method="POST" class="d-inline w-100">
                         <button type="submit" class="nav-link border-0 bg-transparent w-100 text-start">
                             <i class="fa-solid fa-arrow-right-from-bracket"></i>
                             <span class="nav-text">Logout</span>
@@ -152,7 +152,7 @@
                 
                 {{else}}
                 <li>
-                    <a href="/login" class="nav-link">
+                    <a href="/auth/login" class="nav-link">
                         <i class="fa-solid fa-right-to-bracket"></i>
                         <span class="nav-text">Login / Register</span>
                     </a>

@@ -4,10 +4,11 @@ const controller = require('./labs-controller');
 const reservationController = require('../reservations/reservation-controller');
 const { authorize } = require('../middleware/auth-middleware');
 
-router.get('/slots-availability', controller.getLabSlotAvailabilityCount);
+router.get('/slots-availability/:id', controller.getLabSeatsAvailability);
+router.get('/slots-availability', controller.getLabSlotsAvailabilityCount);
+
 
 // router.get("/:id/availability", reservationController.getAvailability);
-// router.get('/:id', controller.getLabDetails);
 
 
 authorize('technician');
