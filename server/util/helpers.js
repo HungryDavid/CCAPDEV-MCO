@@ -12,9 +12,14 @@ module.exports = {
     // Usage: {{#if (eq user.role "technician")}} ... {{/if}}
     eq: function (a, b) {
        // console.log( a === b);
+       console.log(a + "vs" + b + ", " + (a===b)) ;
         return a === b;
         
     },
+
+    isSelected: function(a, b) {
+  return a === b ? 'selected' : '';
+},
 
     // 3. NOT EQUAL
     // Usage: {{#if (ne user.role "student")}} ... {{/if}}

@@ -19,7 +19,6 @@
       <div class="col-12 col-md">
         <label for="bookingTime" class="form-label">Time Slot:</label>
         <select id="bookingTime" name="bookingTime" class="form-select">
-          <option value="">All Timeslots</option>
           {{#each timeSlots}}
           <option value="{{this}}" {{#if (eq this ../selectedTime)}}selected{{/if}}>
             {{this}}
@@ -54,7 +53,7 @@
   {{#each labs}}
   <div class="col-12 col-sm-6 col-md-4 col-lg-3">
     
-    <a href="/labs/slots-availability/{{name}}"
+    <a href="/labs/slots-availability/{{name}}?bookingDate={{../selectedDate}}&bookingTime={{../selectedTime}}"
        class="text-decoration-none text-dark">
 
       <div class="card h-100 shadow-sm lab-card-hover">

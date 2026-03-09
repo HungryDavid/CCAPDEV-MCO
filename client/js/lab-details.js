@@ -38,8 +38,8 @@ document.addEventListener("DOMContentLoaded", function () {
      TIME CHANGE
   ========================= */
 
-  if (timeSelect && timeForm) {
-    timeSelect.addEventListener("change", function () {
+  if (bookingTime && timeForm) {
+    bookingTime.addEventListener("change", function () {
       localStorage.setItem("cartSeats", JSON.stringify(cartSeats));
       timeForm.submit();
     });

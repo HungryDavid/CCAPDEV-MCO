@@ -2,18 +2,17 @@
   <p><strong>Date:</strong> {{selectedDate}}</p>
 
   <!-- TIME SELECT FORM -->
-  <form id="timeSelectForm" method="GET" action="/slots-availability/{{lab._id}}">
-    <input type="hidden" name="date" value="{{selectedDate}}">
+  <form id="timeSelectForm" method="GET" action="/labs/slots-availability/{{lab.name}}?bookingDate={{selectedDate}}&bookingTime={{selectedTime}}">
+    <input type="hidden" name="bookingDate" value="{{selectedDate}}">
 
     <div class="row mb-3">
       <div class="col-md-4">
         <label class="form-label">Select Time:</label>
-
-        <select class="form-select" name="time" id="timeSelect">
+        <select class="form-select" name="bookingTime" id="bookingTime">
           {{#each timeSlots}}
-            <option value="{{this}}" {{#eq ../selectedTime this}}selected{{/eq}}>
-              {{this}}
-            </option>
+          <option value="{{this}}" {{isSelected ../selectedTime this}}>
+            {{this}}
+          </option>
           {{/each}}
         </select>
       </div>
@@ -23,65 +22,57 @@
   <!-- SEAT GRID -->
   <div class="row" id="seatGrid">
     {{#each flattenedSeats}}
-      {{#if (eq time ../selectedTime)}}
-        <div class="col-md-2 col-3 mb-2">
-          <button
-            class="btn seat-btn w-100
+    {{#if (eq time ../selectedTime)}}
+    <div class="col-md-2 col-3 mb-2">
+      <button class="btn seat-btn w-100
               {{#if reserved}}
                 btn-outline-danger
               {{else}}
                 btn-outline-primary
-              {{/if}}"
-            data-seat="{{seatNumber}}"
-            data-time="{{time}}"
-            {{#if reserved}}disabled{{/if}}
-          >
-            {{#if reserved}}
-              Reserved
-            {{else}}
-              {{seatNumber}}
-            {{/if}}
-          </button>
-        </div>
-      {{/if}}
+              {{/if}}" data-seat="{{seatNumber}}" data-time="{{time}}" {{#if reserved}}disabled{{/if}}>
+        {{#if reserved}}
+        Reserved
+        {{else}}
+        {{seatNumber}}
+        {{/if}}
+      </button>
+    </div>
+    {{/if}}
     {{/each}}
   </div>
 
   <!-- Add To Cart -->
   <div class="text-center mt-3">
-    <button
-      id="openCartBtn"
-      class="btn btn-success"
-    >
+    <button id="openCartBtn" class="btn btn-success">
       Add to Cart <span id="totalSelected">(0)</span>
     </button>
   </div>
 
-<!-- Table for Selected Seats -->
-<!-- Table for Selected Seats -->
-<div class="mt-4" id="selectedSeatsTableContainer">
-  <h5>Selected Seats:</h5>
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Time</th>
-        <th>Seat Number</th>
-        <th>Status</th>
-        <th>Action</th> <!-- Delete column -->
-      </tr>
-    </thead>
-    <tbody id="selectedSeatsTableBody">
-      <!-- Selected seats will be dynamically inserted here -->
-    </tbody>
-  </table>
+  <!-- Table for Selected Seats -->
+  <!-- Table for Selected Seats -->
+  <div class="mt-4" id="selectedSeatsTableContainer">
+    <h5>Selected Seats:</h5>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Seat Number</th>
+          <th>Status</th>
+          <th>Action</th> <!-- Delete column -->
+        </tr>
+      </thead>
+      <tbody id="selectedSeatsTableBody">
+        <!-- Selected seats will be dynamically inserted here -->
+      </tbody>
+    </table>
 
-  <!-- Confirm Reservation Button -->
-  <div class="text-center mt-3">
-    <button id="confirmReservationBtn" class="btn btn-success">
-      Confirm Reservation
-    </button>
+    <!-- Confirm Reservation Button -->
+    <div class="text-center mt-3">
+      <button id="confirmReservationBtn" class="btn btn-success">
+        Confirm Reservation
+      </button>
+    </div>
   </div>
-</div>
 
-<!-- Load External JS -->
-<script src="/js/lab-details.js"></script>
+  <!-- Load External JS -->
+  <script src="/js/lab-details.js"></script>

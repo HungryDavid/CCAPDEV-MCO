@@ -87,7 +87,6 @@ exports.getManageLabsPage = async (req, res) => {
 exports.getLabSlotsAvailabilityCount = async (req, res) => {
   try {
     const selectedDate = req.query.bookingDate || getNextNDates(7)[0];
-    const selectedTime = req.query.bookingTime || null; // single slot or null
     const selectedLabId = req.query.labName || null;
 
     const todayStr = new Date().toISOString().split('T')[0];
@@ -96,7 +95,8 @@ exports.getLabSlotsAvailabilityCount = async (req, res) => {
     // Generate dates and time slots
     const availableDates = getNextNDates(7);
     const timeSlots = getTimeSlots(isToday);
-    const autoSelectedTime = selectedTime || (timeSlots.length > 0 ? timeSlots[0] : null);
+    const selectedTime = req.query.bookingTime || (timeSlots.length > 0 ? timeSlots[0] : null);
+
 
     // Filter labs by labName if provided
     let labsQuery = {};
@@ -109,17 +109,17 @@ exports.getLabSlotsAvailabilityCount = async (req, res) => {
 
     for (const lab of allLabs) {
       // Skip if selected time is outside lab hours
-      if (autoSelectedTime && (autoSelectedTime < lab.openTime || autoSelectedTime >= lab.closeTime)) {
+      if (selectedTime && (selectedTime < lab.openTime || selectedTime >= lab.closeTime)) {
         continue;
       }
 
       // Count reservations for this lab at selected date/time
       let reservedCount = 0;
-      if (autoSelectedTime) {
+      if (selectedTime) {
         const reservations = await Reservation.find({
           laboratory: lab._id,
           date: selectedDate,
-          timeSlots: autoSelectedTime
+          timeSlots: selectedTime
         }).lean();
         reservedCount = reservations.length;
       }
@@ -251,10 +251,8 @@ exports.getLabSeatsAvailability = async (req, res) => {
 
 
     // Get selected date & time from query
-    const selectedDate =
-      req.query.date || new Date().toISOString().split("T")[0];
-
-    const selectedTime = req.query.time || "07:30";
+    const selectedDate = req.query.bookingDate;
+    const selectedTime = req.query.bookingTime;
 
     // Fetch lab
     const lab = await Laboratory.findById(labId).lean();
@@ -302,6 +300,9 @@ exports.getLabSeatsAvailability = async (req, res) => {
     const selectedTimes = req.session.selectedTimes || [];
 
     const formattedSelectedTimes = selectedTimes.join(", ");
+
+    console.log("selected time " + selectedTime);
+    console.log(flattenedSeats);
 
     res.render("lab-details", {
       lab,
