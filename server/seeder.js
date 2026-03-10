@@ -24,19 +24,19 @@ const seedData = async () => {
       const existing = await User.findOne({ $or: [{ email: u.email }, { _id: u._id }] });
       if (existing) continue;
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(u.password, 12);
-
-      // Create user
-      await User.create({
-        _id: u._id,
-        name: `${u.profile.firstName} ${u.profile.lastName}`,
-        email: u.email,
-        password: hashedPassword,
-        role: u.role,
-        profilePic: u.profile.profilePicture,
-        bio: u.profile.description
+      const newUser = new User({
+          _id: u._id,
+          name: `${u.profile.firstName} ${u.profile.lastName}`,
+          email: u.email,
+          password: u.password, // This is your '$2b$12$...' hash from config
+          role: u.role,
+          profilePic: u.profile.profilePicture,
+          bio: u.profile.description
       });
+
+      newUser.isAlreadyHashed = true; 
+
+      await newUser.save();
     }
 
     // ───── LABS ─────

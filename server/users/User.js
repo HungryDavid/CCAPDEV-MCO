@@ -188,7 +188,7 @@ userSchema.statics.loginUser = async function (identifier, password) {
 
   const query = identifier.includes('@') 
     ? { email: identifier.toLowerCase() } 
-    : { idNumber: identifier };
+    : { _id: identifier };
 
   const user = await this.findOne(query).select('+password');
   if (!user) {

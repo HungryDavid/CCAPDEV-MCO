@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body {
+            min-height: 100vh;
+            display: block;
+            /* Remove flex and centering */
+            margin: 0;
+            /* Remove default body margin */
+        }
+
+        .wrapper {
+            display: block;
+            /* Remove flex display */
+            width: 100%;
+            /* Ensure it spans the full width */
+        }
+
+        .sidebar {
+            min-height: 100%;
+            background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+        }
+
+        main {
+            padding: 20px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container-fluid wrapper p-0">
+        <div class="row w-100 g-0">
+
+            <!-- 2. The Sidebar Partial -->
+            {{> sidebar
+            routes=this.routes
+            userRole=this.userRole
+            currentPath=this.currentPath
+            }}
+
+            {{> header . }}
+            <!-- 3. The Page Content (Dynamic) -->
+            <main class="col-10 offset-2">
+                {{{ body }}}
+            </main>
+        </div>
+    </div>
+</body>
+
+</html>
