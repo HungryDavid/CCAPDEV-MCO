@@ -5,6 +5,13 @@ const validator = require('validator');
 // Define the user schema
 const userSchema = new mongoose.Schema(
   {
+    // User's ID number (should be 8 digits)
+    _id: {
+      type: String,
+      required: true,
+      trim: true,
+      match: [/^\d{8}$/, 'ID Number must be exactly 8 digits']
+    },
     // User's full name
     name: {
       type: String,
@@ -22,14 +29,6 @@ const userSchema = new mongoose.Schema(
           validator.isEmail(val) && val.endsWith('@dlsu.edu.ph'), // Validate email format & domain
         message: 'Email must be a valid @dlsu.edu.ph address',
       },
-    },
-    // User's ID number (should be 8 digits)
-    idNumber: {
-      type: String,
-      required: [true, 'ID Number is required'],
-      unique: true, // Ensure ID number is unique
-      trim: true, // Remove leading/trailing spaces
-      match: [/^\d{8}$/, 'ID Number must be exactly 8 digits'], // Validate the format
     },
     // User's role (either student or technician)
     role: {

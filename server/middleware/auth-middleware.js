@@ -2,7 +2,7 @@
 // 1. Protect routes that require the user to be logged in
 exports.ensureAuthenticated = async (req, res, next) => {
     // 1. Check if the session exists and has a userId
-    if (!req.session || !req.session.userId) {
+    if (!req.session) {
         console.log("Auth-Middleware EnsureAuthenticated");
         return res.redirect('/auth/login');
     }; 

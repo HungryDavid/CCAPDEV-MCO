@@ -22,7 +22,8 @@ dotenv.config({
 });
 
 // Connect to MongoDB database
-connectDB();
+const { seedData } = require('./seeder');
+seedData();
 
 // Initialize Express app
 const app = express();
@@ -104,4 +105,7 @@ app.use('/', require('./users/auth-routes'));
 const PORT = process.env.PORT || 3000;
 
 // Start the server
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log("http://localhost:3000");
+});

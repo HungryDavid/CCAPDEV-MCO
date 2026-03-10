@@ -13,9 +13,9 @@ const connectDB = async () => {
 
  const users = [
     {
-        _id: "u001",
+        _id: "12345671",
         email: "john_doe@dlsu.edu.ph",
-        password: "hashed_password_123", // In real DB, store hashed passwords
+        password: "hashed_password_123",
         role: "student",
         profile: {
             firstName: "John",
@@ -26,7 +26,7 @@ const connectDB = async () => {
         accountStatus: "active"
     },
     {
-        _id: "u002",
+        _id: "12345672",
         email: "jane_smith@dlsu.edu.ph",
         password: "hashed_password_456",
         role: "student",
@@ -39,10 +39,10 @@ const connectDB = async () => {
         accountStatus: "active"
     },
     {
-        _id: "u003",
+        _id: "12345673",
         email: "tech_admin@dlsu.edu.ph",
         password: "admin_password_789",
-        role: "technician", // Can block slots and remove no-shows
+        role: "technician",
         profile: {
             firstName: "Lab",
             lastName: "Technician",
@@ -52,7 +52,7 @@ const connectDB = async () => {
         accountStatus: "active"
     },
     {
-        _id: "u004",
+        _id: "12345674",
         email: "carl_johnson@dlsu.edu.ph",
         password: "hashed_password_321",
         role: "student",
@@ -65,7 +65,7 @@ const connectDB = async () => {
         accountStatus: "active"
     },
     {
-        _id: "u005",
+        _id: "12345675",
         email: "maria_clara@dlsu.edu.ph",
         password: "hashed_password_654",
         role: "student",
@@ -75,7 +75,7 @@ const connectDB = async () => {
             description: "Multimedia Arts.",
             profilePicture: "images/profiles/maria.jpg"
         },
-        accountStatus: "deleted" // Simulates a user who deleted their account
+        accountStatus: "deleted"
     }
 ];
 
@@ -86,6 +86,8 @@ const connectDB = async () => {
         description: "General Purpose Lab - Windows Machines",
         location: "1st Floor, Gokongwei Hall",
         totalSeats: 40,
+        openTime: "08:00",
+        closeTime: "18:00",
         image: "images/labs/gk101.jpg"
     },
     {
@@ -94,6 +96,8 @@ const connectDB = async () => {
         description: "Multimedia Lab - Mac Studios",
         location: "2nd Floor, Velasco Hall",
         totalSeats: 30,
+        openTime: "08:00",
+        closeTime: "18:00",
         image: "images/labs/vl205.jpg"
     },
     {
@@ -102,6 +106,8 @@ const connectDB = async () => {
         description: "Networking and Cybersecurity Lab",
         location: "9th Floor, Andrew Gonzalez Hall",
         totalSeats: 25,
+        openTime: "08:00",
+        closeTime: "18:00",
         image: "images/labs/ag909.jpg"
     },
     {
@@ -110,6 +116,8 @@ const connectDB = async () => {
         description: "Quiet study area with PCs",
         location: "6th Floor, Henry Sy Hall",
         totalSeats: 15,
+        openTime: "08:00",
+        closeTime: "18:00",
         image: "images/labs/libnook.jpg"
     },
     {
@@ -118,39 +126,41 @@ const connectDB = async () => {
         description: "CAD and Simulation Lab",
         location: "3rd Floor, ES Building",
         totalSeats: 35,
+        openTime: "08:00",
+        closeTime: "18:00",
         image: "images/labs/es301.jpg"
     }
 ];
 
- const reservations = [
+const reservations = [
     {
         _id: "r001",
-        userId: "u001", // John Doe
-        labId: "l001",  // Gokongwei 101A
+        userId: "12345671", // John Doe
+        labId: "l001",
         seatNumber: 5,
         reservationDate: "2023-11-25",
         timeSlotStart: "09:00",
         timeSlotEnd: "09:30",
-        reservedAt: "2023-11-20T08:30:00Z", // When the request was made
+        reservedAt: "2023-11-20T08:30:00Z",
         isAnonymous: false,
-        status: "active" // options: active, cancelled, completed
+        status: "active"
     },
     {
         _id: "r002",
-        userId: "u002", // Jane Smith
-        labId: "l001",  // Gokongwei 101A
+        userId: "12345672", // Jane Smith
+        labId: "l001",
         seatNumber: 6,
         reservationDate: "2023-11-25",
         timeSlotStart: "09:00",
         timeSlotEnd: "09:30",
         reservedAt: "2023-11-21T09:15:00Z",
-        isAnonymous: true, // Jane wants to be anonymous on the view slot screen
+        isAnonymous: true,
         status: "active"
     },
     {
         _id: "r003",
-        userId: "u003", // Technician (Walk-in reservation)
-        labId: "l002",  // Velasco 205
+        userId: "12345673", // Technician
+        labId: "l002",
         seatNumber: 12,
         reservationDate: "2023-11-25",
         timeSlotStart: "13:00",
@@ -158,12 +168,12 @@ const connectDB = async () => {
         reservedAt: "2023-11-25T12:55:00Z",
         isAnonymous: false,
         status: "active",
-        walkInStudent: "Walk-in: ID 12112345" // Optional field for tech notes
+        walkInStudent: "Walk-in: ID 12112345"
     },
     {
         _id: "r004",
-        userId: "u001", // John Doe (Reserving 2 consecutive slots)
-        labId: "l003",  // Andrew 909
+        userId: "12345671", // John Doe
+        labId: "l003",
         seatNumber: 1,
         reservationDate: "2023-11-26",
         timeSlotStart: "10:00",
@@ -174,7 +184,7 @@ const connectDB = async () => {
     },
     {
         _id: "r005",
-        userId: "u001", // John Doe (Part 2 of his reservation)
+        userId: "12345671", // John Doe
         labId: "l003",
         seatNumber: 1,
         reservationDate: "2023-11-26",
@@ -186,7 +196,7 @@ const connectDB = async () => {
     },
     {
         _id: "r006",
-        userId: "u004", // Carl
+        userId: "12345674", // Carl
         labId: "l001",
         seatNumber: 20,
         reservationDate: "2023-11-25",
@@ -194,7 +204,7 @@ const connectDB = async () => {
         timeSlotEnd: "08:30",
         reservedAt: "2023-11-24T15:00:00Z",
         isAnonymous: false,
-        status: "cancelled" // Technician removed this or user cancelled
+        status: "cancelled"
     }
 ];
 module.exports = {connectDB, users, labs, reservations };

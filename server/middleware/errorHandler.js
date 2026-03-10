@@ -32,7 +32,7 @@ const sendErrorDev = (req, res, err) => {
   }
 
   // B) RENDERED WEBSITE (HBS)
-  console.error('ERROR 💥', err);
+  console.error('ERROR', err);
   return res.status(err.statusCode).render('error', {
     title: 'Something went wrong!',
     msg: err.message,
@@ -50,7 +50,7 @@ const sendErrorProd = (req, res, err) => {
         message: err.message
       });
     }
-    console.error('ERROR 💥', err);
+    console.error('ERROR', err);
     return res.status(500).json({
       status: 'error',
       message: 'Please try again later.'
@@ -66,7 +66,7 @@ const sendErrorProd = (req, res, err) => {
   }
   
   // Non-operational (Bugs): Send generic message
-  console.error('ERROR 💥', err);
+  console.error('ERROR', err);
   return res.status(err.statusCode).render('error', {
     title: 'Something went wrong!',
     msg: 'Please try again later.'

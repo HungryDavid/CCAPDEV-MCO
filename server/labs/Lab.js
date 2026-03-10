@@ -2,13 +2,16 @@ const mongoose = require('mongoose');
 const Reservation = require('../reservations/Reservation'); // adjust the path to your model
 
 const laboratorySchema = new mongoose.Schema({
+  _id: {
+    type: String, // <-- allow your custom IDs like "l001"
+  },
   name: {
     type: String,
     required: [true, 'A lab must have a name'],
     unique: true,
     trim: true
   },
-  capacity: {
+  totalSeats: {
     type: Number,
     required: [true, 'A lab must have a total number of seats'],
     min: [1, 'Lab must have at least one seat']
