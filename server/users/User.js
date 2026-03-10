@@ -83,9 +83,6 @@ userSchema.pre('save', async function () {
   this.password = await bcrypt.hash(this.password, 12);
 });
 
-userSchema.index({ email: 1, idNumber: 1 });
-
-
 //MODEL LEVEL
 userSchema.statics.doesUserExist = async function (email, idNumber) {
   const user = await this.findOne({
@@ -130,6 +127,7 @@ userSchema.statics.createUser = async function (userData) {
     ...userData,
     name,
     role,
+    _id: idNumber,
   });
 
   return newUser;
