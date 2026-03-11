@@ -1,29 +1,48 @@
 document.addEventListener("DOMContentLoaded", function () {
 
+  const reservationId = document.getElementById('reservationId')?.value || null;
   const bookingTimeElement = document.getElementById("bookingTime");
   const bookingDateInput = document.getElementById("bookingDate");
   const labInput = document.getElementById("labNameInput");
   const timeForm = document.getElementById("timeSelectForm");
-  let bookingTime = bookingTimeElement.value;
-  let selectedLab = labInput.value;
+  let bookingTime = bookingTimeElement ? bookingTimeElement.value : '';
+  let selectedLab = labInput ? labInput.value : '';
 
 
   const confirmButton = document.getElementById("confirmReservationBtn");
 
   const seatButtons = document.querySelectorAll(".seat-btn");
 
-  let slotsInCart = JSON.parse(sessionStorage.getItem("labCart")) || {};
+  let slotsInCart = {};
 
-  console.log("Initial Cart" + window.initialCart);
-  if (window.initialCart) {
+  if (reservationId && window.initialCart) {
+    // Edit flow: initialize cart strictly from existing reservation seats
     for (const [time, seats] of Object.entries(window.initialCart)) {
-      if (!slotsInCart[time]) slotsInCart[time] = [];
-      slotsInCart[time].push(...seats); // add all seat numbers
+      if (Array.isArray(seats) && seats.length > 0) {
+        slotsInCart[time] = {
+          seatNumber: String(seats[0]),
+          status: 'selected'
+        };
+      }
     }
-
-    // Save back to sessionStorage
     sessionStorage.setItem("labCart", JSON.stringify(slotsInCart));
+  } else {
+    // Create flow or no initial data: merge existing cart with initial slots if provided
+    slotsInCart = JSON.parse(sessionStorage.getItem("labCart")) || {};
+    if (window.initialCart) {
+      for (const [time, seats] of Object.entries(window.initialCart)) {
+        if (!slotsInCart[time] && Array.isArray(seats) && seats.length > 0) {
+          slotsInCart[time] = {
+            seatNumber: String(seats[0]),
+            status: 'selected'
+          };
+        }
+      }
+      sessionStorage.setItem("labCart", JSON.stringify(slotsInCart));
+    }
   }
+
+  console.log("Initial Cart", window.initialCart, "reservationId", reservationId);
 
 
   // ADD TO CART FUNCTION
@@ -165,6 +184,18 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function updateSeatButtons(seatStatus) {
+    // Own reservation seat map for edit mode to avoid disabling owned seats
+    const ownSeatMap = {};
+    if (reservationId && window.initialCart) {
+      Object.entries(window.initialCart).forEach(([time, seats]) => {
+        if (Array.isArray(seats)) {
+          seats.forEach(seat => {
+            ownSeatMap[`${time}|${seat}`] = true;
+          });
+        }
+      });
+    }
+
     // Loop through each seat status returned from the server
     seatStatus.forEach(seat => {
       // Find the button for the seat based on seat number and booking time
@@ -172,8 +203,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Check if the button is found
       if (seatButton) {
-        // Log the button to see if it matches the expected one
-        //console.log("Found button for seat:", seat.seatNumber, "Booking Time:", bookingTime);
+        const isOwnSeat = ownSeatMap[`${bookingTime}|${seat.seatNumber}`];
+
+        if (isOwnSeat) {
+          seatButton.classList.remove("btn-outline-danger", "btn-outline-primary");
+          seatButton.classList.add("btn-success");
+          seatButton.disabled = false;
+          seatButton.title = "Selected (your reservation)";
+          seatButton.textContent = seat.seatNumber;
+          return;
+        }
 
         // Update the seat button based on the status from the server
         if (seat.status === "reserved") {
@@ -183,7 +222,7 @@ document.addEventListener("DOMContentLoaded", function () {
           seatButton.title = `${seat.user.name || "Unknown"}`; // Show user info if available
           seatButton.textContent = `${seat.user.name || "Unknown"}`;
         } else if (seat.status === "available") {
-          seatButton.classList.remove("btn-outline-danger");
+          seatButton.classList.remove("btn-outline-danger", "btn-success");
           seatButton.classList.add("btn-outline-primary"); // Available status (blue)
           seatButton.disabled = false; // Enable button if available
           seatButton.title = "Available"; // Available seat
@@ -265,23 +304,47 @@ document.addEventListener("DOMContentLoaded", function () {
       return {};
     }
 
-      
-
     const confirmation = confirm("Are you sure you want to confirm the reservation?");
     if (!confirmation) return;
 
+    const endpoint = reservationId ? "/reservation/edit" : "/reservation/create";
+
+    // Prepare payload based on mode
+    let requestBody;
+
+    if (reservationId) {
+      const times = Object.keys(labCart);
+      const firstTime = times[0];
+      const firstSeat = firstTime ? labCart[firstTime]?.seatNumber : null;
+      requestBody = {
+        id: reservationId,
+        laboratory: selectedLab,
+        date: bookingDateInput.value,
+      };
+
+      if (times.length > 0) {
+        requestBody.time = times.join(",");
+      }
+
+      if (firstSeat !== null && firstSeat !== undefined) {
+        requestBody.seat = String(firstSeat);
+      }
+    } else {
+      requestBody = {
+        selectedLab,
+        selectedDate: bookingDateInput.value,
+        labCart,
+      };
+    }
+
     try {
       // Call your API or backend to save the reservation data
-      const response = await fetch(`/reservation/create`, {
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          selectedLab,
-          selectedDate: bookingDateInput.value,
-          labCart, // Send the entire cart data (time and seats)
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();
@@ -292,12 +355,12 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       // 2. If response was successful (200 OK)
-      alert(result.message || "Reservation confirmed successfully!");
+      alert(result.message || (reservationId ? "Reservation updated successfully!" : "Reservation confirmed successfully!"));
 
-
-      // Clear the local storage and reset the cart
+      // Post-Update Cleanup: clear cart and redirect to history
       sessionStorage.removeItem("labCart");
       renderSelectedSeats();
+      window.location.href = "/reservation";
     } catch (err) {
       alert(err);
     }
