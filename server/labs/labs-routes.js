@@ -3,9 +3,9 @@ const router = express.Router();
 const  controller = require('./labs-controller');
 const { authorize } = require('../middleware/auth-middleware');
 
-router.get("/:id/availability", controller.getLabFlattenedSeats);
-router.get('/slots-availability/:id', controller.getLabSeatsAvailability);
-router.get('/slots-availability', controller.getLabSlotsAvailabilityCount);
+router.get("/:labName/availability", controller.getSeatStatus);
+router.get('/slots-availability/:labName', controller.getLabSeats);
+router.get('/slots-availability', controller.getAllAvailableLabs);
 
 
 authorize('technician');

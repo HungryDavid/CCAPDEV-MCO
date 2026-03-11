@@ -1,221 +1,231 @@
 document.addEventListener("DOMContentLoaded", function () {
+
   const bookingTime = document.getElementById("bookingTime");
   const bookingDateInput = document.getElementById("bookingDate");
   const timeForm = document.getElementById("timeSelectForm");
+  const selectedTime = bookingTime.value;
 
-  const seatButtons = document.querySelectorAll(".seat-btn");
-  const openCartBtn = document.getElementById("openCartBtn");
+  const addToCartBtn = document.getElementById("cart");
 
   const selectedSeatsTableContainer = document.getElementById("selectedSeatsTableContainer");
   const selectedSeatsTableBody = document.getElementById("selectedSeatsTableBody");
-
   const confirmButton = document.getElementById("confirmReservationBtn");
 
-  let selectedSeatsByTime = {};
-  let cartSeats = JSON.parse(localStorage.getItem("cartSeats")) || {};
+  const seatButtons = document.querySelectorAll(".seat-btn");
+  const selectedSeatsByTime = {};
 
-  const selectedTime = bookingTime.value;
+  let slotsInCart = JSON.parse(sessionStorage.getItem("labCart")) || {};
 
-  /* =========================
-     RESTORE CART HIGHLIGHT
-  ========================= */
-  if (cartSeats[selectedTime]) {
-    cartSeats[selectedTime].forEach(seat => {
-      const btn = document.querySelector(
-        `.seat-btn[data-seat='${seat}'][data-time='${selectedTime}']`
-      );
 
-      if (btn) {
-        btn.classList.remove("btn-outline-primary");
+  if (window.initialCart) {
+    slotsInCart = window.initialCart;
+    sessionStorage.setItem("labCart", JSON.stringify(slotsInCart));
+  }
+
+  function updateSeatHighlights(selectedTime) {
+    seatButtons.forEach(btn => {
+      const seat = btn.dataset.seat;
+      if (selectedSeatsByTime[selectedTime] === seat) {
         btn.classList.add("btn-primary");
+        btn.classList.remove("btn-outline-primary");
+      } else {
+        btn.classList.remove("btn-primary");
+        btn.classList.add("btn-outline-primary");
       }
     });
   }
+
+  // Handle seat button clicks
+  seatButtons.forEach(button => {
+    button.addEventListener("click", function () {
+      if (this.disabled) return;
+
+      const seat = this.dataset.seat;
+      const selectedTime = bookingTime.value;
+
+      // Initialize slot if it doesn't exist
+      if (!selectedSeatsByTime[selectedTime]) selectedSeatsByTime[selectedTime] = null;
+
+      // Deselect if clicked again
+      if (selectedSeatsByTime[selectedTime] === seat) {
+        selectedSeatsByTime[selectedTime] = null;
+      } else {
+        // Select new seat
+        selectedSeatsByTime[selectedTime] = seat;
+      }
+
+      // Update button highlights for this time slot
+      updateSeatHighlights(selectedTime);
+
+      console.log("Selected seats for current session:", selectedSeatsByTime);
+    });
+  });
+
+  // Update highlights whenever dropdown changes
+  bookingTime.addEventListener("change", () => {
+    const selectedTime = bookingTime.value;
+    updateSeatHighlights(selectedTime);
+  });
+
+  // Handle Add to Cart button click
+  addToCartBtn.addEventListener("click", () => {
+    const cart = JSON.parse(sessionStorage.getItem("labCart")) || {};
+
+    for (const [time, seat] of Object.entries(selectedSeatsByTime)) {
+      if (!seat) continue;
+      cart[time] = [seat]; // overwrite previous seat for this time slot
+    }
+
+    sessionStorage.setItem("labCart", JSON.stringify(cart));
+    alert("Seat(s) added to cart!");
+
+    // Reset selection for next pick
+    for (const time in selectedSeatsByTime) selectedSeatsByTime[time] = null;
+
+    const currentTime = bookingTime.value;
+    updateSeatHighlights(currentTime);
+    renderCartTable();
+  });
+
 
   /* =========================
      TIME CHANGE
   ========================= */
   if (bookingTime && timeForm) {
     bookingTime.addEventListener("change", function () {
-      localStorage.setItem("cartSeats", JSON.stringify(cartSeats));
+      const cartDataInput = document.getElementById("cartDataInput");
+      cartDataInput.value = JSON.stringify(slotsInCart); // send cart to server
       timeForm.submit();
     });
   }
 
-  /* =========================
-     SEAT SELECTION
-  ========================= */
-  seatButtons.forEach(button => {
-    button.addEventListener("click", function () {
-      if (this.disabled) return;
 
-      const seat = this.dataset.seat;
-      const time = this.dataset.time;
-
-      if (!selectedSeatsByTime[time]) {
-        selectedSeatsByTime[time] = [];
-      }
-
-      if (selectedSeatsByTime[time].includes(seat)) {
-        selectedSeatsByTime[time] = [];
-        this.classList.remove("btn-primary");
-        this.classList.add("btn-outline-primary");
-      } else {
-        // Reset other seats in the same time
-        seatButtons.forEach(btn => {
-          if (btn.dataset.time === time) {
-            btn.classList.remove("btn-primary");
-            btn.classList.add("btn-outline-primary");
-          }
-        });
-
-        selectedSeatsByTime[time] = [seat];
-        this.classList.remove("btn-outline-primary");
-        this.classList.add("btn-primary");
-      }
-
-    });
-  });
-
-  /* =========================
-     RENDER TABLE
-  ========================= */
-  function renderSelectedSeatsTable() {
+  // Render the cart table
+  function renderCartTable() {
+    slotsInCart = JSON.parse(sessionStorage.getItem("labCart")) || {};
     selectedSeatsTableBody.innerHTML = "";
 
-    if (Object.keys(cartSeats).length === 0) {
+    // Hide table if empty
+    if (Object.keys(slotsInCart).length === 0) {
       selectedSeatsTableContainer.style.display = "none";
       return;
     }
 
     selectedSeatsTableContainer.style.display = "block";
 
-    for (const [time, seats] of Object.entries(cartSeats)) {
+    for (const [time, seats] of Object.entries(slotsInCart)) {
       seats.forEach(seat => {
         const row = document.createElement("tr");
         row.innerHTML = `
-          <td>${time}</td>
-          <td>${seat}</td>
-          <td class="status-cell">Checking...</td>
-          <td>
-            <button class="btn btn-danger btn-sm delete-seat">
-              Delete
-            </button>
-          </td>
-        `;
-
-        row.querySelector(".delete-seat").addEventListener("click", () => {
-          deleteSeatFromSelection(time, seat);
-        });
+        <td>${time}</td>
+        <td>${seat}</td>
+        <td class="status-cell">Checking...</td>
+        <td>
+          <button class="btn btn-danger btn-sm delete-seat" data-time="${time}" data-seat="${seat}">Delete</button>
+        </td>
+      `;
 
         selectedSeatsTableBody.appendChild(row);
       });
     }
   }
 
-  openCartBtn.addEventListener("click", function () {
-    for (const [time, seats] of Object.entries(selectedSeatsByTime)) {
-      cartSeats[time] = [...seats];
-    }
 
-    localStorage.setItem("cartSeats", JSON.stringify(cartSeats));
-    renderSelectedSeatsTable();
+  //Get Time and Seat of Delete Button
+  selectedSeatsTableBody.addEventListener("click", (e) => {
+    if (e.target.classList.contains("delete-seat")) {
+      const time = e.target.dataset.time;
+      const seat = e.target.dataset.seat;
+      deleteSeatFromSelection(time, seat);
+    }
   });
 
-
-  /* =========================
-     DELETE SEAT
-  ========================= */
+  // Delete a seat from cart
   function deleteSeatFromSelection(time, seat) {
-    if (cartSeats[time]) {
-      cartSeats[time] = cartSeats[time].filter(s => s !== seat);
-
-      if (cartSeats[time].length === 0) {
-        delete cartSeats[time];
-      }
+    if (slotsInCart[time]) {
+      slotsInCart[time] = slotsInCart[time].filter(s => s !== seat);
+      if (slotsInCart[time].length === 0) delete slotsInCart[time];
     }
 
-    localStorage.setItem("cartSeats", JSON.stringify(cartSeats));
-    renderSelectedSeatsTable();
+    sessionStorage.setItem("labCart", JSON.stringify(slotsInCart));
+    renderCartTable();
   }
+
+
+  function updateTableStatus(seatStatus) {
+    const rows = selectedSeatsTableBody.querySelectorAll("tr");
+
+    rows.forEach(row => {
+      const seat = parseInt(row.children[1].textContent); // seat number
+      const statusCell = row.querySelector(".status-cell");
+
+      // Find seat info from the latest status
+      const seatInfo = seatStatus.find(s => parseInt(s.seatNumber) === seat);
+      console.log("Seat INfo" + seatInfo);
+
+      if (seatInfo) {
+        const status = seatInfo.status;
+        statusCell.textContent = status;
+
+        // Reset classes first
+        statusCell.classList.remove("text-success", "text-danger", "text-warning");
+
+        // Apply color based on status
+        if (status === "available") {
+          statusCell.classList.add("text-success"); // green
+        } else if (status === "reserved") {
+          statusCell.classList.add("text-danger"); // red
+        } else {
+          statusCell.classList.add("text-warning"); // yellow/orange for other statuses
+        }
+      } else {
+        statusCell.textContent = "Unknown";
+        statusCell.classList.remove("text-success", "text-danger");
+        statusCell.classList.add("text-warning");
+      }
+    });
+  }
+
+
+  setInterval(update, 3000);
   /* =========================
      AJAX AUTO UPDATE
   ========================= */
-async function update() {
+  async function update() {
     console.log("Updating seat status...");
-
-    // Get labId from the URL path
     const labName = window.location.pathname.split("/")[3];
-    console.log("Lab Name:", labName);  // Log labName to make sure it's correct
-
-    // Get the booking date
     const bookingDate = bookingDateInput.value;
-    console.log("Booking Date:", bookingDate);  // Log booking date to verify it's correct
 
     try {
-        // Fetch the available seats from the server
-        const response = await fetch(`/labs/${labName}/availability?bookingDate=${bookingDate}`);
+      // Fetch the available seats from the server
+      const response = await fetch(`/labs/${labName}/availability?bookingDate=${bookingDate}`);
 
-        // Check if the response is successful (status 200)
-        if (!response.ok) {
-            throw new Error(`Failed to fetch data. Status: ${response.status}`);
-        }
-
-        const flattenedSeats = await response.json();
-        console.log("Fetched Seats Data:", flattenedSeats);  // Log the response to verify its content
-
-        // Update the table status based on the fetched data
-        updateTableStatus(flattenedSeats);
-    } catch (err) {
-        console.error("Seat availability error:", err);
-    }
-}
-
-/* =========================
-   UPDATE TABLE STATUS
-========================= */
-function updateTableStatus(flattenedSeats) {
-  const seatMap = flattenedSeats.reduce((map, seatData) => {
-    const key = `${seatData.seatNumber}-${seatData.time}`;
-    map[key] = seatData.reserved;
-    return map;
-  }, {});
-
-  // Convert the table rows into an array for easier iteration
-  Array.from(selectedSeatsTableBody.rows).forEach(row => {
-    const time = row.cells[0].textContent;  // Get the time from the table row
-    const seat = row.cells[1].textContent;  // Get the seat number from the table row
-    const statusCell = row.cells[2];  // The cell where the status will be displayed
-
-    const seatKey = `${seat}-${time}`;
-    const isReserved = seatMap[seatKey];
-
-    if (isReserved !== undefined) {
-      // Update status based on reserved, available, or expired
-      if (isReserved) {
-        statusCell.textContent = "Reserved";
-        statusCell.classList.add("text-danger");
-        statusCell.classList.remove("text-success", "text-muted");  // Removing other styles
-      } else {
-        statusCell.textContent = "Available";
-        statusCell.classList.add("text-success");
-        statusCell.classList.remove("text-danger", "text-muted");  // Removing other styles
+      // Check if the response is successful (status 200)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch data. Status: ${response.status}`);
       }
-    } else {
-      // If the status is not reserved or available, mark it as expired
-      statusCell.textContent = "Expired";
-      statusCell.classList.add("text-muted");
-      statusCell.classList.remove("text-danger", "text-success");  // Removing other styles
+
+
+      const seatStatus = await response.json();
+      console.log("Fetched Seats Data:", seatStatus);  // Log the response to verify its content
+
+      // Update the table status based on the fetched data
+      updateTableStatus(seatStatus);
+    } catch (err) {
+      console.error("Seat availability error:", err);
     }
-  });
-}
+  }
+
+  /* =========================
+     UPDATE TABLE STATUS
+  ========================= */
+
 
   // Start the auto-update every 3 seconds
-  setInterval(update, 3000);
-  renderSelectedSeatsTable();
+
 
   confirmButton.addEventListener("click", async function () {
-    const selectedSeats = cartSeats;
+    const selectedSeats = slotsInCart;
 
     if (Object.keys(selectedSeats).length === 0) {
       alert("Please select at least one seat.");
@@ -231,6 +241,7 @@ function updateTableStatus(flattenedSeats) {
       const selectedTime = bookingTime.value;
 
 
+
       // Call your API or backend to save the reservation data
       const response = await fetch(`/reservation/create`, {
         method: "POST",
@@ -238,7 +249,7 @@ function updateTableStatus(flattenedSeats) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          labId: labName,
+          labName: labName,
           date: bookingDate,
           selections: selectedSeats, // Send the entire cart data (time and seats)
         }),
@@ -252,15 +263,14 @@ function updateTableStatus(flattenedSeats) {
       alert(result.message || "Reservation confirmed successfully!");
 
       // Clear the local storage and reset the cart
-      localStorage.removeItem("cartSeats");
-      cartSeats = {};
-      renderSelectedSeatsTable();
+      sessionStorage.removeItem("labCart");
+      renderCartTable();
     } catch (err) {
       console.error("Reservation error:", err);
       alert("An error occurred while confirming the reservation.");
     }
   });
 
-
+  renderCartTable();
 
 });

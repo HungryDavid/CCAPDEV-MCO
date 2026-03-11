@@ -10,46 +10,43 @@
       <div class="col-md-4">
         <label class="form-label">Select Time:</label>
         <select class="form-select" name="bookingTime" id="bookingTime">
-          {{#each timeSlots}}
-          <option value="{{this}}" {{isSelected ../selectedTime this}}>
+          {{#each timeSlotsArray}}
+          <option value="{{this}}" {{#if (eq this ../selectedTime)}}selected{{/if}}>
             {{this}}
           </option>
           {{/each}}
         </select>
       </div>
     </div>
+
+    <input type="hidden" name="cartData" id="cartDataInput" />
   </form>
 
   <!-- SEAT GRID -->
   <div class="row" id="seatGrid">
-    {{#each flattenedSeats}}
-    {{#if (eq time ../selectedTime)}}
+    {{#each labSeats}}
     <div class="col-md-2 col-3 mb-2">
-      <button class="btn seat-btn w-100
-              {{#if reserved}}
-                btn-outline-danger
-              {{else}}
-                btn-outline-primary
-              {{/if}}" data-seat="{{seatNumber}}" data-time="{{time}}" {{#if reserved}}disabled{{/if}}>
-        {{#if reserved}}
+      <button class="btn seat-btn w-100 {{#if (eq this.status "
+        reserved")}}btn-outline-danger{{else}}btn-outline-primary{{/if}}" data-seat="{{this.seatNumber}}" {{#if (eq
+        this.status "reserved" )}}disabled{{/if}} title="{{#if (eq this.status "
+        reserved")}}{{this.user.name}}{{else}}Available{{/if}}">
+        {{#if (eq this.status "reserved")}}
         Reserved
         {{else}}
-        {{seatNumber}}
+        {{this.seatNumber}}
         {{/if}}
       </button>
     </div>
-    {{/if}}
     {{/each}}
   </div>
 
   <!-- Add To Cart -->
   <div class="text-center mt-3">
-    <button id="openCartBtn" class="btn btn-success">
+    <button id="cart" class="btn btn-success">
       Add to Cart
     </button>
   </div>
 
-  <!-- Table for Selected Seats -->
   <!-- Table for Selected Seats -->
   <div class="mt-4" id="selectedSeatsTableContainer">
     <h5>Selected Seats:</h5>
@@ -63,6 +60,7 @@
         </tr>
       </thead>
       <tbody id="selectedSeatsTableBody">
+        
         <!-- Selected seats will be dynamically inserted here -->
       </tbody>
     </table>

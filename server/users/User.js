@@ -73,7 +73,7 @@ const userSchema = new mongoose.Schema(
 // ─── Virtuals (References to other models) ──────────────────────────────────
 userSchema.virtual('reservations', {
   ref: 'Reservation', // The model being referenced
-  foreignField: 'student', // Field in Reservation model that links to User
+  foreignField: 'User', // Field in Reservation model that links to User
   localField: '_id', // Local field to match
 });
 

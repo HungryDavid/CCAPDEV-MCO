@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const reservationSchema = new mongoose.Schema({
   studentId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Student',
+    ref: 'User',
     default: null // null if anonymous
   },
   anonymous: {
@@ -82,9 +82,17 @@ reservationSchema.statics.updateReservation = async function(reservationId, upda
  * Delete a reservation
  */
 reservationSchema.statics.deleteReservation = async function(reservationId) {
-  const res = await this.findByIdAndDelete(reservationId);
-  if (!res) throw new Error('Reservation not found');
-  return res;
+
+  // Validate the reservationId
+  if (!reservationId || !mongoose.Types.ObjectId.isValid(reservationId)) {
+    throw new Error('Invalid reservation ID');
+  }
+
+  const result = await this.findByIdAndDelete(reservationId);
+
+  if (!result) throw new Error('Reservation not found');
+
+  return true; // simply indicate success
 };
 
 /**
@@ -109,22 +117,32 @@ reservationSchema.statics.getReservationById = async function(id) {
   return res;
 };
 
-reservationSchema.statics.parseSelections = function(selections) {
-  const selectionsArray = Array.isArray(selections) ? selections : [selections];
+reservationSchema.statics.getUpcomingReservationsByUser = async function (userId) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
 
-  const timeSlots = [];
+    const reservations = await this.find({
+      studentId: userId,
+      date: { $gte: today }
+    })
+      .populate('laboratory', 'name')
+      .select('_id laboratory seatNumbers timeSlots date')
+      .sort({ date: 1 });
 
-  selectionsArray.forEach(item => {
-    const [, time] = item.split("|");
+    // Group by reservation _id
+    const grouped = reservations.map(res => ({
+      reservationId: res._id,
+      laboratory: res.laboratory?.name,
+      date: res.date,
+      seats: Array.isArray(res.seatNumbers) ? res.seatNumbers.join(', ') : res.seatNumbers,
+      time: Array.isArray(res.timeSlots) ? res.timeSlots.join(', ') : res.timeSlots
+    }));
 
-    if (time && !timeSlots.includes(time)) {
-      timeSlots.push(time);
-    }
-  });
+    return grouped;
 
-  return timeSlots;
+  } catch (err) {
+    throw err;
+  }
 };
-
-
 
 module.exports = mongoose.model('Reservation', reservationSchema);

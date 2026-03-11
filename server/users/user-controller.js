@@ -1,8 +1,12 @@
 const User = require('./User');
+const Reservation = require('../reservations/Reservation');
+
 
 exports.getCurrentUser = async (req, res) => {
     try {
         const sessionUser = await User.readUserByIdSafe(req.session.userId).lean();
+        const reservations = await Reservation.getUpcomingReservationsByUser(req.session.userId);
+
         res.render('partials/profile-card', {
             user: sessionUser,
             account: sessionUser,
@@ -10,7 +14,8 @@ exports.getCurrentUser = async (req, res) => {
             headerTitle: 'My Profile',
             layout: 'dashboard',
             activePage: 'my-profile',
-            isOwner: true
+            isOwner: true,
+            reservations
         });
 
     } catch (error) {
@@ -53,11 +58,12 @@ exports.searchUser = async (req, res) => {
 
     // Default: no search performed yet
     let searchedUser = null;
-
+    let searchedUserReservation = null
     if (query) {
       try {
         const searchedUserDoc = await User.readUserSafeAndPublic(query);
         searchedUser = searchedUserDoc?.toObject() || null;
+        searchedUserReservation = await Reservation.getUpcomingReservationsByUser(searchedUser._id);
       } catch (err) {
         if (err.message !== 'User not found.') {
           console.error('Error fetching user:', err);
@@ -66,6 +72,8 @@ exports.searchUser = async (req, res) => {
       }
     }
 
+
+    
     // Render the page (works whether query is empty or not)
     res.render('search-profile', {
       title: 'Search Users',
@@ -74,7 +82,8 @@ exports.searchUser = async (req, res) => {
       activePage: 'search-user',
       user: sessionUser,
       account: searchedUser,
-      searchQuery: query
+      searchQuery: query,
+      reservations: searchedUserReservation
     });
 
   } catch (error) {

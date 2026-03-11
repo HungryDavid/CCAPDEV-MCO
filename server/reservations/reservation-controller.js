@@ -1,52 +1,53 @@
 const Reservation = require('./Reservation');
 const Laboratory = require('../labs/Lab');
+const User = require('../users/User');
+
 
 
 exports.createReservation = async (req, res) => {
   try {
-    const { labId, date, selections } = req.body; // selections = { time: [seatNumbers] }
-    const studentId = req.user?._id || null;
-    const anonymous = !req.user;
+    const { labName, date, selections } = req.body; // selections = { time: [seatNumber] }
+    const studentId = req.session.userId;
+    const anonymous = true;
 
-    // Ensure that the necessary fields are provided
-    if (!labId || !date || !selections || Object.keys(selections).length === 0) {
+    if (!labName || !date || !selections || Object.keys(selections).length === 0) {
       return res.status(400).json({ error: "Invalid request, missing labId, date or selections." });
     }
 
-    // Loop through each time slot and validate seat availability
-    for (const [time, seats] of Object.entries(selections)) {
-      const seatNumbers = seats.map(Number); // Ensure seats are in number format
+    const labId = await Laboratory.getIdByName(labName);
 
-      // Check if the selected seats are available for this time slot
-      const isAvailable = await Laboratory.areSeatsAvailable(
-        labId,
-        date,
-        [time], // Single time slot
-        seatNumbers
-      );
+    const timeSlots = [];
+    const seatNumbers = [];
+
+    // Check availability and prepare arrays for reservation
+    for (const [time, seats] of Object.entries(selections)) {
+      const seat = Number(seats[0]); // only one seat per time slot
+      const isAvailable = await Laboratory.areSeatsAvailable(labName, date, [time], [seat]);
 
       if (!isAvailable) {
         return res.status(400).json({
-          error: `One or more seats for time slot ${time} are already reserved.`,
+          error: `Seat ${seat} for time slot ${time} is already reserved.`,
         });
       }
 
-      console.log("hello");
-
-      // Create reservation for this time slot
-      await Reservation.createReservation({
-        studentId,
-        anonymous,
-        laboratory: labId,
-        date,
-        timeSlots: [time],
-        seatNumbers,
-      });
+      timeSlots.push(time);
+      seatNumbers.push(seat);
     }
-    res.render('/user/me');
+
+    // Create single reservation for all time slots
+    await Reservation.createReservation({
+      studentId,
+      anonymous,
+      laboratory: labId,
+      date,
+      timeSlots,
+      seatNumbers,
+    });
+    res.status(200).json({
+      message: "Reservation confirmed successfully!",
+    });
   } catch (err) {
     console.error(err);
-    // More specific error messages can be added for various error types
     if (err.name === 'ValidationError') {
       return res.status(400).json({ error: err.message });
     }
@@ -56,13 +57,21 @@ exports.createReservation = async (req, res) => {
 
 exports.getReservationById = async (req, res) => {
   try {
+    const sessionUser = await User.readUserByIdSafe(req.session.userId).lean();
+    const reservations = await Reservation.getUpcomingReservationsByUser(req.session.userId);
 
-    const reservation = await Reservation.getReservationById(req.params.id);
-
-    res.json(reservation);
+    res.render('my-reservations', {
+            user: sessionUser,
+            account: sessionUser,
+            title: 'My Reservations',
+            headerTitle: 'My Reservations',
+            layout: 'dashboard',
+            activePage: 'my-reservations',
+            reservations
+    });
 
   } catch (err) {
-
+    console.log(err);
     res.status(404).send(err.message);
 
   }
@@ -117,14 +126,15 @@ exports.updateReservation = async (req, res) => {
 exports.deleteReservation = async (req, res) => {
   try {
 
-    const { id } = req.params;
+
+    const { id } = req.body;
 
     await Reservation.deleteReservation(id);
-
-    res.json({ message: "Reservation deleted" });
+    res.redirect("/reservation");
 
   } catch (err) {
 
+    console.log(err);
     res.status(404).send(err.message);
 
   }

@@ -3,7 +3,6 @@
 exports.ensureAuthenticated = async (req, res, next) => {
     // 1. Check if the session exists and has a userId
     if (!req.session || !req.session.userId) {
-        console.log("Auth-Middleware EnsureAuthenticated");
         return res.redirect('/auth/login');
     }; 
     next(); 
@@ -19,7 +18,6 @@ exports.ensureGuest = (req, res, next) => {
     if (!req.session.userId) {
         return next();
     }
-    console.log("Auth-middleware ensureGuest: Not a guest");
     return res.redirect("/auth/login");
 //    return res.redirect('/slots-availability'); // or dashboard
 };

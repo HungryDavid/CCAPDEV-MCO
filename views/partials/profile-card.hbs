@@ -80,19 +80,21 @@
         <table class="table table-bordered table-hover align-middle mb-0">
           <thead class="table-success">
             <tr>
-              <th scope="col" class="fw-semibold">Laboratory</th>
               <th scope="col" class="fw-semibold">Date</th>
               <th scope="col" class="fw-semibold">Time</th>
-            </tr>
+              <th scope="col" class="fw-semibold">Laboratory</th>
+              <th scope="col" class="fw-semibold">Seat#</th>
+                  </tr>
           </thead>
           <tbody>
 
             {{#if reservations}}
             {{#each reservations}}
             <tr>
-              <td>{{this.laboratory}}</td>
               <td>{{this.date}}</td>
               <td>{{this.time}}</td>
+              <td>{{this.laboratory}}</td>
+              <td>{{this.seats}}</td>
             </tr>
             {{/each}}
             {{else}}
