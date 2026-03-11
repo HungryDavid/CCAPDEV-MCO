@@ -5,13 +5,18 @@ const Laboratory = require('../labs/Lab');
 exports.createReservation = async (req, res) => {
   try {
     const { labId, date, selections } = req.body; // selections = { time: [seatNumbers] }
-    const studentId = req.user?._id || null;
-    const anonymous = !req.user;
+    
+    const studentId = req.session?.userId || null;
+    const anonymous = !studentId;
 
     // Ensure that the necessary fields are provided
     if (!labId || !date || !selections || Object.keys(selections).length === 0) {
       return res.status(400).json({ error: "Invalid request, missing labId, date or selections." });
     }
+
+    const decodedLabName = decodeURIComponent(labId);
+
+    const actualLabId = await Laboratory.getIdByName(decodedLabName);
 
     // Loop through each time slot and validate seat availability
     for (const [time, seats] of Object.entries(selections)) {
@@ -19,7 +24,7 @@ exports.createReservation = async (req, res) => {
 
       // Check if the selected seats are available for this time slot
       const isAvailable = await Laboratory.areSeatsAvailable(
-        labId,
+        decodedLabName, 
         date,
         [time], // Single time slot
         seatNumbers
@@ -32,18 +37,20 @@ exports.createReservation = async (req, res) => {
       }
 
       console.log("hello");
-
       // Create reservation for this time slot
       await Reservation.createReservation({
-        studentId,
-        anonymous,
-        laboratory: labId,
-        date,
+        _id: `res-${Date.now()}-${Math.floor(Math.random() * 1000)}`, 
+        userId: studentId,
+        anonymous: anonymous,
+        labId: actualLabId,         
+        reservationDate: date,      
         timeSlots: [time],
-        seatNumbers,
+        seatNumbers: seatNumbers,
       });
     }
-    res.render('/user/me');
+    
+    res.status(200).json({ message: "Reservation successful!" });
+    
   } catch (err) {
     console.error(err);
     // More specific error messages can be added for various error types

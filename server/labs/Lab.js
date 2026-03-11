@@ -100,16 +100,16 @@ laboratorySchema.statics.getIdByName = async function (labName) {
 laboratorySchema.statics.generateFlattenedSeats = async function(lab, timeSlots, selectedDate) {
   // Fetch reservations for this lab on the selected date
   const reservations = await Reservation.find({
-    laboratory: lab._id,
-    date: selectedDate
+    labId: lab._id,
+    reservationDate: selectedDate
   }).lean();
 
   const flattenedSeats = [];
 
-  for (let seat = 1; seat <= lab.capacity; seat++) {
+  for (let seat = 1; seat <= lab.totalSeats; seat++) {
     timeSlots.forEach(time => {
       const reserved = reservations.some(
-        r => r.seatNumber === seat && r.timeSlots.includes(time)
+        r => r.seatNumbers && r.seatNumbers.includes(seat) && r.timeSlots.includes(time)
       );
 
       flattenedSeats.push({
