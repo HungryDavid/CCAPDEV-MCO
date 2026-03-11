@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+const CustomError = require('../util/CustomError');
+const moment = require('moment');
 
 const reservationSchema = new mongoose.Schema({
   studentId: {
@@ -38,27 +40,141 @@ const reservationSchema = new mongoose.Schema({
 });
 
 
+reservationSchema.statics.checkSlotStatus = async function(selectedLab, selectedDate, labCart) {
+  const currentTime = moment.utc(); // current date and time in UTC
+  console.log("Current Time (UTC): ", currentTime.format()); // Debugging: Log current time
+
+  const currentDate = moment.utc().format('YYYY-MM-DD'); // current date in UTC
+
+  // Get all reservations for the selected lab and date
+  const reservations = await this.find({
+    laboratory: selectedLab,
+    date: selectedDate
+  });
+
+  console.log("Reservations: ", reservations); // Debugging: Log fetched reservations
+
+  const slotStatus = {};
+
+  // Check each time slot in labCart
+  for (const [time, seatData] of Object.entries(labCart)) {
+    // Convert labCart time to UTC and create moment object
+    const slotMoment = moment.utc(`${selectedDate} ${time}`, 'YYYY-MM-DD HH:mm');
+    console.log(`Checking slot for time: ${time}, slotMoment (UTC): ${slotMoment.format()}`); // Debugging: Log slot moment
+
+    // Initialize the slot status for this time
+    slotStatus[time] = {
+      status: null,
+      seatNumber: seatData.seatNumber // Directly assign the seatNumber from labCart
+    };
+
+    // Check if the slot has passed
+    if (slotMoment.isBefore(currentTime)) {
+      slotStatus[time].status = 'expired';
+      console.log(`Slot ${time} is expired.`); // Debugging: Log expired status
+    } else {
+      // Check if the slot is reserved by matching both time and seat number
+      const isReserved = reservations.some(reservation => {
+        console.log("Raw reservation timeSlots: ", reservation.timeSlots);  // Log raw timeSlots data
+
+        // Map through the reservation.timeSlots array, normalize each time to UTC, and format it
+        const reservationTimes = reservation.timeSlots.map(slot =>
+          moment.utc(slot, 'HH:mm').format('HH:mm')  // Convert each time slot to UTC and format as HH:mm
+        );
+
+        console.log("Normalized reservation times: ", reservationTimes); // Log normalized reservation times
+
+        // Check if the time matches
+        const isTimeMatch = reservationTimes.includes(time);
+        
+        // Check if the seat number also matches
+        const isSeatMatch = reservation.seatNumbers.includes(seatData.seatNumber);
+
+        console.log(`Checking time and seat match for time ${time} and seat number ${seatData.seatNumber}`);
+        console.log(`Time match: ${isTimeMatch}, Seat match: ${isSeatMatch}`);
+
+        // Both time and seat number must match
+        if (isTimeMatch && isSeatMatch) {
+          console.log(`Match found! Reservation:`, reservation);  // Log the full reservation that matches
+          return true; // This slot is reserved
+        }
+
+        return false;
+      });
+
+      if (isReserved) {
+        slotStatus[time].status = 'reserved';
+        console.log(`Slot ${time} with seat ${seatData.seatNumber} is reserved.`); // Debugging: Log reserved status
+      } else {
+        slotStatus[time].status = 'available';
+        console.log(`Slot ${time} with seat ${seatData.seatNumber} is available.`); // Debugging: Log available status
+      }
+    }
+  }
+
+  console.log("Final Slot Status: ", slotStatus); // Debugging: Log final slot status
+  return slotStatus;
+};
+
+
 
 /**
  * Create a new reservation safely
  */
-reservationSchema.statics.createReservation = async function({ studentId, anonymous, laboratory, date, timeSlots, seatNumbers }) {
-  // Check conflicts for each time slot
+reservationSchema.statics.checkUserReservationConflict = async function (studentId, laboratory, date, timeSlots) {
+  // Check if the user has already made a reservation for the same lab, date, and time slot
+  for (const time of timeSlots) {
+    const existingReservation = await this.findOne({
+      studentId,
+      laboratory,
+      date,
+      timeSlots: time
+    });
+
+    if (existingReservation) {
+      throw new CustomError(409, 'Conflict', `You have already reserved a seat for ${time} in this lab.`);
+    }
+  }
+};
+
+reservationSchema.statics.checkSeatAvailabilityConflict = async function (laboratory, date, timeSlots, seatNumbers) {
+  // Check conflicts for each time slot (seat availability)
   for (const time of timeSlots) {
     const existing = await this.find({ laboratory, date, timeSlots: time });
     const reservedSeats = existing.flatMap(r => r.seatNumbers);
 
     const conflict = seatNumbers.some(seat => reservedSeats.includes(seat));
-    if (conflict) throw new Error(`One or more seats are already reserved at ${time}`);
+    if (conflict) {
+      throw new CustomError(409, 'Conflict', `One or more seats are already reserved at ${time}`);
+    }
   }
+};
 
-  return this.create({ studentId, anonymous, laboratory, date, timeSlots, seatNumbers });
+reservationSchema.statics.createReservation = async function ({ studentId, anonymous, laboratory, date, timeSlots, seatNumbers }) {
+  // Validate input data directly within the model
+  try {
+    if (!laboratory || !date || !timeSlots || !seatNumbers || timeSlots.length === 0 || seatNumbers.length === 0) {
+      throw new CustomError(400, 'BadRequest', "Invalid request, missing labId, date, time slots, or seat numbers.");
+    }
+    // Check for any user reservation conflicts
+    await this.checkUserReservationConflict(studentId, laboratory, date, timeSlots);
+    // Then, check for any seat availability conflicts
+    await this.checkSeatAvailabilityConflict(laboratory, date, timeSlots, seatNumbers);
+    // If no conflicts, proceed with creating the reservation
+    return this.create({ studentId, anonymous, laboratory, date, timeSlots, seatNumbers });
+  } catch (err) {
+    if (err instanceof CustomError) {
+      throw err; // Re-throw the custom error to be handled at the API level or UI
+    } else {
+      throw new CustomError(500, 'InternalServerError', 'Failed to fetch lab slot status');
+    }
+  }
 };
 
 /**
  * Update a reservation
  */
-reservationSchema.statics.updateReservation = async function(reservationId, updateData) {
+reservationSchema.statics.updateReservation = async function (reservationId, updateData) {
   // Check if timeSlots/laboratory/date is being updated
   if (updateData.timeSlots || updateData.date || updateData.laboratory) {
     const reservation = await this.findById(reservationId);
@@ -81,7 +197,7 @@ reservationSchema.statics.updateReservation = async function(reservationId, upda
 /**
  * Delete a reservation
  */
-reservationSchema.statics.deleteReservation = async function(reservationId) {
+reservationSchema.statics.deleteReservation = async function (reservationId) {
 
   // Validate the reservationId
   if (!reservationId || !mongoose.Types.ObjectId.isValid(reservationId)) {
@@ -98,17 +214,22 @@ reservationSchema.statics.deleteReservation = async function(reservationId) {
 /**
  * Get reservations (optionally filter by lab, student, date)
  */
-reservationSchema.statics.getReservations = function(filter = {}) {
-  return this.find(filter)
-    .populate('laboratory', 'name openTime closeTime')
-    .populate('studentId', 'name email')
-    .lean();
+reservationSchema.statics.getReservationById = async function (id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error('Invalid reservation ID');
+  }
+
+  return this.findById(id)
+    .populate('studentId', 'name email')     // optional
+    .populate('laboratory', 'name') // optional
+    .exec();
 };
+
 
 /**
  * Get a single reservation by ID
  */
-reservationSchema.statics.getReservationById = async function(id) {
+reservationSchema.statics.getReservationById = async function (id) {
   const res = await this.findById(id)
     .populate('laboratory', 'name openTime closeTime')
     .populate('studentId', 'name email')
@@ -143,7 +264,7 @@ reservationSchema.statics.getUpcomingReservationsByUser = async function (userId
       seats: Array.isArray(res.seatNumbers) ? res.seatNumbers.join(', ') : res.seatNumbers,
       time: Array.isArray(res.timeSlots) ? res.timeSlots.join(', ') : res.timeSlots,
       dateTimeCreated: formatDateTime(res.createdAt)
-      
+
     }));
 
     return grouped;

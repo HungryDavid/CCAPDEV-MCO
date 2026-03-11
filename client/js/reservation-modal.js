@@ -17,19 +17,35 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     // Edit Modal
-    const editReservationModal = document.getElementById("editReservationModal");
-    if (editReservationModal) {
-        const editReservationIdInput = document.getElementById("edit-reservation-id");
-        const editLabInput = document.getElementById("edit-laboratory");
-        const editDateInput = document.getElementById("edit-date");
-        const editTimeInput = document.getElementById("edit-time");
+    const editButtons = document.querySelectorAll('a[href*="/reservation/"][title="Edit reservation"]');
 
-        editReservationModal.addEventListener("show.bs.modal", function (event) {
-            const button = event.relatedTarget;
-            editReservationIdInput.value = button.getAttribute("data-id");
-            editLabInput.value = button.getAttribute("data-laboratory");
-            editDateInput.value = button.getAttribute("data-date");
-            editTimeInput.value = button.getAttribute("data-time");
+    editButtons.forEach(button => {
+        button.addEventListener('click', (event) => {
+            event.preventDefault(); // Prevent default navigation if needed
+
+            // Get the closest row (tr for desktop, card-body for mobile)
+            const row = button.closest('tr') || button.closest('.card-body');
+
+            if (!row) return;
+
+            let timeSlot, seatNo;
+
+            // Desktop (table row)
+            if (row.tagName === 'TR') {
+                timeSlot = row.children[3].textContent.trim(); // 4th column -> Time
+                seatNo = row.children[5].textContent.trim();   // 6th column -> Seat#
+            } else {
+                // Mobile (card)
+                timeSlot = row.querySelector('small:contains("Booking Time")')?.textContent.split(':')[1].trim();
+                seatNo = row.querySelector('small:contains("Seat#")')?.textContent.split('#')[1].trim();
+            }
+
+            console.log('Time Slot:', timeSlot);
+            console.log('Seat No:', seatNo);
+
+            // Optional: redirect to the edit page
+            window.location.href = button.getAttribute('href');
         });
-    }
+    });
+
 });

@@ -1,12 +1,15 @@
-<main class="main">
-  <div class="error">
-    <div class="error__title">
-      <h2 class="heading-secondary">Uh oh! Something went wrong!</h2>
+{{! This content will be inserted into the body of the layout template }}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-12 text-center">
+      <div class="error-box">
+        <div class="error-face">
+          <span class="big-sad-face">:(</span>
+        </div>
+        <h1 class="error-number">{{errorNumber}}</h1>
+        <h2 class="error-name">{{errorName}}</h2>
+        <p class="error-details">{{errorMessage}}</p>
+      </div>
     </div>
-    <div class="error__msg">{{msg}}</div>
-    
-    {{#if stack}}
-      <pre style="text-align: left; font-size: 10px; color: red;">{{stack}}</pre>
-    {{/if}}
   </div>
-</main>
+</div>

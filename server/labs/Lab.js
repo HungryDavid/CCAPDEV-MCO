@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const Reservation = require('../reservations/Reservation'); // adjust the path to your model
+const moment = require('moment'); // You can use moment.js for easier date handling
+const CustomError = require('../util/CustomError');
 
 const laboratorySchema = new mongoose.Schema({
   name: {
@@ -215,12 +217,36 @@ laboratorySchema.statics.getAvailableLabs = async function (bookingDate, booking
 
 laboratorySchema.statics.getLabSeats = async function(labName, timeSlot, date) {
   try {
-    const lab = await this.findOne({ name: labName });
-    if (!lab) throw new Error('Lab not found');
+    // 1. Validate Date
+    const currentDate = moment(); // current date
+    const inputDate = moment(date); // user's selected date
 
-    // Build query dynamically
+    // Check if the selected date is a valid date
+    if (!inputDate.isValid()) {
+      throw new CustomError(400, 'Bad Request', 'The date format is invalid.');
+    }
+
+    // Ensure that the selected date is within the next 7 days from today
+    const sevenDaysFromNow = moment().add(7, 'days'); // 7 days from current date
+    if (inputDate.isBefore(currentDate, 'day') || inputDate.isAfter(sevenDaysFromNow, 'day')) {
+      throw new CustomError(400, 'Bad Request', 'Booking date must be within the next 7 days.');
+    }
+
+    // 2. Validate Time Slot (ensure it's in HH:mm format)
+    const timeSlotRegex = /^([01]\d|2[0-3]):([0-5]\d)$/; // Regular expression for 24-hour time format (HH:mm)
+    if (timeSlot && !timeSlotRegex.test(timeSlot)) {
+      throw new CustomError(400, 'Bad Request', 'Invalid time format. Expected HH:mm.');
+    }
+
+    // 3. Proceed with fetching lab details
+    const lab = await this.findOne({ name: labName });
+    if (!lab) {
+      throw new CustomError(404, 'Not Found', 'Lab not found.');
+    }
+
+    // Correct query for timeSlots (array)
     const query = { laboratory: lab._id, date: date };
-    if (timeSlot) query.timeSlots = timeSlot;
+    if (timeSlot) query.timeSlots = { $in: [timeSlot] };
 
     const reservations = await Reservation.find(query).populate({
       path: 'studentId',
@@ -228,10 +254,11 @@ laboratorySchema.statics.getLabSeats = async function(labName, timeSlot, date) {
       select: 'name'
     });
 
+    // 4. Build seat map
     const seatMap = new Map();
     reservations.forEach(res => {
       res.seatNumbers.forEach(seat => {
-        seatMap.set(seat, {
+        seatMap.set(seat.toString(), { // normalize
           user: res.anonymous
             ? { name: 'Anonymous', id: null }
             : { name: res.studentId?.name || 'Unknown', id: res.studentId?._id || null },
@@ -240,13 +267,15 @@ laboratorySchema.statics.getLabSeats = async function(labName, timeSlot, date) {
       });
     });
 
+    // 5. Build seat status array
     const seatStatus = [];
     for (let seat = 1; seat <= lab.capacity; seat++) {
-      if (seatMap.has(seat)) {
+      const seatStr = seat.toString();
+      if (seatMap.has(seatStr)) {
         seatStatus.push({
           seatNumber: seat,
-          user: seatMap.get(seat).user,
-          status: seatMap.get(seat).status
+          user: seatMap.get(seatStr).user,
+          status: 'reserved'
         });
       } else {
         seatStatus.push({
@@ -257,10 +286,18 @@ laboratorySchema.statics.getLabSeats = async function(labName, timeSlot, date) {
       }
     }
 
+    console.log(labName);
+    console.log(date);
+    console.log(timeSlot);
+    console.log(seatStatus);
     return seatStatus;
+
   } catch (err) {
-    console.error('Error fetching lab slot status:', err);
-    throw new Error('Failed to fetch lab slot status');
+    if (err instanceof CustomError) {
+      throw err; // Re-throw the custom error to be handled at the API level or UI
+    } else {
+      throw new CustomError(500, 'InternalServerError', 'Failed to fetch lab slot status');
+    }
   }
 };
 

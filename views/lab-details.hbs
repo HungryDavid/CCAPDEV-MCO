@@ -1,3 +1,5 @@
+
+
 <div class="container mt-4">
   <p><strong>Date:</strong> {{selectedDate}}</p>
 
@@ -5,6 +7,7 @@
   <form id="timeSelectForm" method="GET"
     action="/labs/slots-availability/{{lab.name}}?bookingDate={{selectedDate}}&bookingTime={{selectedTime}}">
     <input type="hidden" name="bookingDate" value="{{selectedDate}}" id="bookingDate">
+    <input type="hidden" id="labNameInput" value="{{lab.name}}">
 
     <div class="row mb-3">
       <div class="col-md-4">
@@ -27,11 +30,12 @@
     {{#each labSeats}}
     <div class="col-md-2 col-3 mb-2">
       <button class="btn seat-btn w-100 {{#if (eq this.status "
-        reserved")}}btn-outline-danger{{else}}btn-outline-primary{{/if}}" data-seat="{{this.seatNumber}}" {{#if (eq
-        this.status "reserved" )}}disabled{{/if}} title="{{#if (eq this.status "
-        reserved")}}{{this.user.name}}{{else}}Available{{/if}}">
+        reserved")}}btn-outline-danger{{else}}btn-outline-primary{{/if}}" data-seat="{{this.seatNumber}}"
+        data-booking-time="{{../bookingTime}}" {{#if (eq this.status "reserved" )}}disabled{{/if}}
+        title="{{#if (eq this.status " reserved")}}{{this.user.name}}{{else}}Available{{/if}}">
+
         {{#if (eq this.status "reserved")}}
-        Reserved
+        {{this.user.name}}
         {{else}}
         {{this.seatNumber}}
         {{/if}}
@@ -60,7 +64,7 @@
         </tr>
       </thead>
       <tbody id="selectedSeatsTableBody">
-        
+
         <!-- Selected seats will be dynamically inserted here -->
       </tbody>
     </table>
@@ -74,6 +78,9 @@
   </div>
 
   <!-- Load External JS -->
-  <script src="/js/lab-details.js">
-
+  <script>
+    window.initialCart = {{{json reservationSea}}};
+    console.log("Initial Cart from server:", window.initialCart);
   </script>
+
+  <script src="/js/lab-details.js"></script>

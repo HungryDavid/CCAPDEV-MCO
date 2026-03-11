@@ -1,70 +1,55 @@
-const moment = require('moment'); // You might need: npm install moment
+const moment = require('moment'); // npm install moment
 const hbs = require('hbs');
 
 module.exports = {
     // 1. FORMAT DATE
-    // Usage: {{formatDate date "MMMM Do YYYY, h:mm:ss a"}}
     formatDate: function (date, format) {
         return moment(date).format(format);
     },
 
     // 2. EQUALITY CHECK
-    // Usage: {{#if (eq user.role "technician")}} ... {{/if}}
     eq: function (a, b) {
         return a === b;
-        
     },
 
-    isSelected: function(a, b) {
-  return a === b ? 'selected' : '';
-},
+    // 3. IS SELECTED
+    isSelected: function (a, b) {
+        return a === b ? 'selected' : '';
+    },
 
-    // 3. NOT EQUAL
-    // Usage: {{#if (ne user.role "student")}} ... {{/if}}
+    // 4. NOT EQUAL
     ne: function (a, b) {
         return a !== b;
     },
 
-    // 4. CHECK IF RESERVED
-    // Logic: If a reservation object exists, return 'taken', else 'available'
-    // Usage: <div class="seat {{seatStatus this.reservation}}">
+    // 5. CHECK IF RESERVED
     seatStatus: function (reservation) {
         return reservation ? 'taken' : 'available';
     },
 
+    // 6. ROLE CHECK
     hasRole: function (user, requiredRole, options) {
-        // 1. Safety check: If no user or no role, don't show anything
         if (!user || !user.role) {
             return options.inverse(this);
         }
-
-        console.log("Checking navbar roles...");
-        // 2. Allow for multiple roles (comma separated)
-        // Example: {{#hasRole user "admin,technician"}}
         const rolesArray = requiredRole.split(',').map(role => role.trim());
-
         if (rolesArray.includes(user.role)) {
-            return options.fn(this); // Show the content inside the block
+            return options.fn(this);
         }
-
-        return options.inverse(this); // Show the {{else}} block if it exists
+        return options.inverse(this);
     },
 
-    // 5. DEBUGGING (Dump JSON)
-    // Usage: {{{json this}}} - prints raw data to screen to check what you are getting
+    // 7. DEBUGGING (Dump JSON)
     json: function (context) {
         return JSON.stringify(context, null, 2);
     },
 
-    // 6. MATH (Add)
-    // Usage: {{add index 1}} (Useful for lists starting at 1 instead of 0)
+    // 8. MATH (Add)
     add: function (value, addition) {
         return parseInt(value) + parseInt(addition);
     },
 
-
-    // 8. TRUNCATE TEXT
-    // Usage: {{truncate description 50}}
+    // 9. TRUNCATE TEXT
     truncate: function (str, len) {
         if (str.length > len && str.length > 0) {
             return str.substring(0, len) + '...';
@@ -72,15 +57,73 @@ module.exports = {
         return str;
     },
 
-    // 9. CHECK IF TECHNICIAN (Shorthand)
-    // Usage: {{#if (isTech role)}}
-    isTech: function (role) {
-        return role === 'technician';
+    // 10. CHECK IF TECHNICIAN
+    renderErrorPage: function (res, err) {
+        res.render('error', {
+            layout: "plain",  // Default layout
+            errorNumber: err.errorNumber || 500,  // Default to 500 if errorNumber is not provided
+            errorName: err.errorName || 'Internal Server Error',  // Default to 'Internal Server Error'
+            errorMessage: err.errorMessage || 'An unexpected error occurred.'  // Default message
+        });
     },
 
+    // 11. NAV LINK CLASS
     navLinkClass: function (currentPath, targetPath) {
         return currentPath === targetPath
             ? 'active text-white bg-primary'
             : 'text-black';
+    },
+
+    // 12. TIME SLOTS HELPER
+    getTimeSlots: function (intervalMinutes = 30, start = "19:30", end = "07:15", date = null) {
+        const slots = [];
+
+        // Force start time to always be 00:00
+        const [startH, startM] = [0, 0];  // 00:00 as the start time
+        const [endH, endM] = end.split(":").map(Number);
+
+        let startTime, endTime;
+
+        // Use provided date or default to today (in local time zone)
+        const localDate = new Date().toLocaleDateString('en-CA');  // Local date in YYYY-MM-DD format
+        if (date) {
+            startTime = new Date(date);
+            endTime = new Date(date);
+        } else {
+            startTime = new Date(localDate);
+            endTime = new Date(localDate);
+        }
+
+        startTime.setHours(startH, startM, 0, 0); // Set start time to 00:00
+        endTime.setHours(Math.min(endH, 23), Math.min(endM, 59), 0, 0); // Cap end time at 23:59
+
+        // If the start time is after the end time, move the end time to the next day
+        if (startTime > endTime) {
+            endTime.setDate(endTime.getDate() + 1);
+        }
+
+        // Check if the date is today (skip past time slots if it's today)
+        const now = new Date();
+        const isToday = !date || date === localDate;
+
+        let slotTime = new Date(startTime);
+        while (slotTime <= endTime) {
+            // If the date is today and the slotTime is in the past, skip it
+            if (isToday && slotTime <= now) {
+                slotTime.setMinutes(slotTime.getMinutes() + intervalMinutes);
+                continue;
+            }
+
+            // Format the time and push it into the slots array
+            const formatted = slotTime.toLocaleTimeString("en-GB", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false
+            });
+            slots.push(formatted);
+            slotTime.setMinutes(slotTime.getMinutes() + intervalMinutes);
+        }
+
+        return slots;
     }
 };
