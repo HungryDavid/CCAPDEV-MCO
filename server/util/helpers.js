@@ -27,6 +27,21 @@ module.exports = {
         return reservation ? 'taken' : 'available';
     },
 
+    // 6. CHECK IF A SEAT IS SELECTED IN A RESERVATION
+    isSeatSelected: function (reservationSeats, selectedTime, seatNumber) {
+        if (!reservationSeats || !selectedTime) {
+            return false;
+        }
+
+        const seats = reservationSeats[selectedTime];
+        if (!Array.isArray(seats)) {
+            return false;
+        }
+
+        const seatStr = String(seatNumber);
+        return seats.some(seat => String(seat) === seatStr);
+    },
+
     // 6. ROLE CHECK
     hasRole: function (user, requiredRole, options) {
         if (!user || !user.role) {
