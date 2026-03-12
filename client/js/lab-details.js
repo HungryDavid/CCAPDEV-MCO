@@ -35,18 +35,29 @@ document.addEventListener("DOMContentLoaded", function () {
 
   let labCart = JSON.parse(sessionStorage.getItem("labCart")) || {};
 
-  seatButtons.forEach(button => {
-    button.addEventListener('click', function (event) {
-      event.preventDefault();  // <-- prevent form submission
-      const seatNumber = button.dataset.seat;
-      bookingTime = bookingTimeElement.value;
+seatButtons.forEach(button => {
+  button.addEventListener('click', function (event) {
+    event.preventDefault(); // prevent form submission
 
-      labCart[bookingTime] = { seatNumber, status: 'Checking...' };
-      sessionStorage.setItem("labCart", JSON.stringify(labCart));
-      renderSelectedSeats();
-      alert(`Seat ${seatNumber} has been added/updated for the time slot ${bookingTime}.`);
-    });
+    const seatNumber = button.dataset.seat;
+    bookingTime = bookingTimeElement.value;
+
+    const studentIdNumber = button.dataset.studentId; // idNumber from backend
+
+    if (studentIdNumber) {
+      // Reserved seat: navigate to user search page
+      window.location.href = `/user/search?q=${encodeURIComponent(studentIdNumber)}`;
+      return; // stop further execution
+    }
+
+    // No studentIdNumber: stay on page, add seat to cart
+    labCart[bookingTime] = { seatNumber, status: 'Checking...' };
+    sessionStorage.setItem("labCart", JSON.stringify(labCart));
+    renderSelectedSeats();
+    // Optional: alert can be removed for smoother UX
+    // alert(`Seat ${seatNumber} has been added/updated for the time slot ${bookingTime}.`);
   });
+});
 
 function renderSelectedSeats() {
   const labCart = JSON.parse(sessionStorage.getItem("labCart")) || {};
@@ -135,6 +146,7 @@ function renderSelectedSeats() {
   }
 
   function updateSeatButtons(seatStatus) {
+    console.log(seatStatus);
     if (!bookingTimeElement) return;
     const bookingTime = bookingTimeElement.value;
 
@@ -145,7 +157,6 @@ function renderSelectedSeats() {
       if (seat.status === "reserved") {
         seatButton.classList.remove("btn-outline-primary");
         seatButton.classList.add("btn-outline-danger");
-        seatButton.disabled = true;
         seatButton.title = seat.user?.name || "Unknown";
         seatButton.textContent = seat.user?.name || "Unknown";
       } else if (seat.status === "available") {

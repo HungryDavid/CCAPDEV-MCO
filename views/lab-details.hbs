@@ -38,17 +38,17 @@
 <div class="row" id="seatGrid">
   {{#each labSeats}}
   <div class="col-md-2 col-3 mb-2">
-    <button class="btn seat-btn w-100 {{#if (eq this.status "
-      reserved")}}btn-outline-danger{{else}}btn-outline-primary{{/if}}" data-seat="{{this.seatNumber}}"
-      data-booking-time="{{../selectedTime}}" {{#if (eq this.status "reserved" )}}disabled{{/if}}
-      title="{{#if (eq this.status " reserved")}}{{this.user.name}}{{else}}Available{{/if}}">
-
-      {{#if (eq this.status "reserved")}}
-      {{this.user.name}}
-      {{else}}
-      {{this.seatNumber}}
-      {{/if}}
-    </button>
+<button class="btn seat-btn w-100 {{#if (eq this.status "reserved")}}btn-outline-danger{{else}}btn-outline-primary{{/if}}" 
+        data-seat="{{this.seatNumber}}"
+        data-booking-time="{{../selectedTime}}" 
+        data-student-id="{{this.user.idNumber}}" 
+        title="{{#if (eq this.status "reserved")}}{{this.user.name}}{{else}}Available{{/if}}">
+    {{#if (eq this.status "reserved")}}
+        {{this.user.name}}
+    {{else}}
+        {{this.seatNumber}}
+    {{/if}}
+</button>
   </div>
   {{/each}}
 </div>

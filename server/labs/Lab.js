@@ -225,7 +225,11 @@ laboratorySchema.statics.getLabSeats = async function(labName, timeSlot, date) {
   const query = { laboratory: lab._id, date };
   if (timeSlot) query["slots.timeSlot"] = timeSlot;
 
-  const reservations = await Reservation.find(query).populate({ path: 'studentId', select: 'name' });
+  // Populate studentId and include idNumber field
+  const reservations = await Reservation.find(query).populate({ 
+    path: 'studentId', 
+    select: 'name idNumber'  // <-- fetch idNumber from User
+  });
 
   // Build seat map
   const seatMap = new Map();
@@ -234,8 +238,12 @@ laboratorySchema.statics.getLabSeats = async function(labName, timeSlot, date) {
       if (!timeSlot || slot.timeSlot === timeSlot) {
         seatMap.set(slot.seatNumber.toString(), {
           user: res.anonymous
-            ? { name: 'Anonymous', id: null }
-            : { name: res.studentId?.name || 'Unknown', id: res.studentId?._id || null },
+            ? { name: 'Anonymous', id: null, idNumber: null }
+            : { 
+                name: res.studentId?.name || 'Unknown', 
+                id: res.studentId?._id || null,
+                idNumber: res.studentId?.idNumber || null  // <-- use idNumber
+              },
           status: 'reserved'
         });
       }
@@ -259,13 +267,12 @@ laboratorySchema.statics.getLabSeats = async function(labName, timeSlot, date) {
 
     seatStatus.push({
       seatNumber: seat,
-      user: seatMap.get(seatStr)?.user || { name: null, id: null },
+      user: seatMap.get(seatStr)?.user || { name: null, id: null, idNumber: null }, // <-- default includes idNumber
       status
     });
   }
 
   return seatStatus;
 };
-
 
 module.exports = mongoose.model('Laboratory', laboratorySchema);

@@ -172,6 +172,9 @@ exports.getLabSeats = async (req, res) => {
     const lab = await Laboratory.getLabById(labId);
     const labSeats = await Laboratory.getLabSeats(selectedLabName, selectedTime, selectedDate);
     const timeSlotsArray = getTimeSlots(30, lab.openTime, lab.closeTime, selectedDate);
+  
+
+    console.log(labSeats);
     res.render("lab-details", {
       labSeats,
       selectedDate,
