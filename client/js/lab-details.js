@@ -1,30 +1,17 @@
 document.addEventListener("DOMContentLoaded", function () {
 
   const bookingTimeElement = document.getElementById("bookingTime");
-  const bookingDateInput = document.getElementById("bookingDate");
-  const labInput = document.getElementById("labNameInput");
+  const bookingDateElement = document.getElementById("bookingDate");
+  const labElement = document.getElementById("labName");
+
   const timeForm = document.getElementById("timeSelectForm");
-  let bookingTime = bookingTimeElement.value;
-  let selectedLab = labInput.value;
-
-
   const confirmButton = document.getElementById("confirmReservationBtn");
-
   const seatButtons = document.querySelectorAll(".seat-btn");
 
+  const bookingDate = bookingDateElement.value;
+  let bookingTime = bookingTimeElement.value;
+  let selectedLab = labElement.value;
   let slotsInCart = JSON.parse(sessionStorage.getItem("labCart")) || {};
-
-  console.log("Initial Cart" + window.initialCart);
-  if (window.initialCart) {
-    for (const [time, seats] of Object.entries(window.initialCart)) {
-      if (!slotsInCart[time]) slotsInCart[time] = [];
-      slotsInCart[time].push(...seats); // add all seat numbers
-    }
-
-    // Save back to sessionStorage
-    sessionStorage.setItem("labCart", JSON.stringify(slotsInCart));
-  }
-
 
   // ADD TO CART FUNCTION
   seatButtons.forEach(button => {
@@ -135,25 +122,22 @@ document.addEventListener("DOMContentLoaded", function () {
   ========================= */
   async function update() {
     // Get labName from hidden input
-    const labNameInput = document.getElementById("labNameInput");
-    const labName = labNameInput ? labNameInput.value : "";
-    const bookingDate = bookingDateInput.value;
-    const bookingTime = bookingTimeElement.value;
+    let bookingTime = bookingTimeElement.value;
 
-    if (!labName) {
+    if (!selectedLab) {
       return;
     }
 
     try {
       // Fetch the available seats from the server
-      const response = await fetch(`/labs/${encodeURIComponent(labName)}/availability?bookingDate=${bookingDate}&bookingTime=${bookingTime}`);
+      const response = await fetch(`/labs/${encodeURIComponent(selectedLab)}/availability?bookingDate=${bookingDate}&bookingTime=${bookingTime}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch data. Status: ${response.status}`);
       }
 
       const seatStatus = await response.json();
-
+      
       updateSeatButtons(seatStatus);
       const fetchedData = await fetchCartStatus();
       updateSessionStorage(fetchedData);
@@ -165,6 +149,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function updateSeatButtons(seatStatus) {
+    
     // Loop through each seat status returned from the server
     seatStatus.forEach(seat => {
       // Find the button for the seat based on seat number and booking time
@@ -210,7 +195,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // Prepare the request body
       const requestBody = {
         selectedLab,               // Assuming selectedLab is already available in scope
-        selectedDate: bookingDateInput.value,  // Assuming bookingDateInput is the date input element
+        selectedDate: bookingDateElement.value,  // Assuming bookingDateInput is the date input element
         labCart,                   // Include the full cart (optional if you need it)
       };
 
@@ -245,7 +230,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (labCart[bookingTime]) {  // Check if the booking time exists in labCart
         // If it matches, update the status
         labCart[bookingTime].status = fetchedData[bookingTime]?.status;  // Update status to "reserved"
-      } 
+      }
     }
 
 
@@ -265,8 +250,6 @@ document.addEventListener("DOMContentLoaded", function () {
       return {};
     }
 
-      
-
     const confirmation = confirm("Are you sure you want to confirm the reservation?");
     if (!confirmation) return;
 
@@ -279,7 +262,7 @@ document.addEventListener("DOMContentLoaded", function () {
         },
         body: JSON.stringify({
           selectedLab,
-          selectedDate: bookingDateInput.value,
+          selectedDate: bookingDateElement.value,
           labCart, // Send the entire cart data (time and seats)
         }),
       });

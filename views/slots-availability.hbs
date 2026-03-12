@@ -55,9 +55,10 @@
   {{#each availableLabs}}
   <div class="col-12 col-sm-6 col-md-4 col-lg-3">
 
-    <a href="/labs/slots-availability/{{name}}?bookingDate={{../selectedDate}}&bookingTime={{../selectedTime}}"
-      class="text-decoration-none text-dark">
-
+    <form action="/labs/slots-availability/{{name}}" method="POST" class="text-decoration-none text-dark">
+      <input type="hidden" name="labName" value="{{name}}">
+      <input type="hidden" name="bookingTime" value="">
+      <input type="hidden" name="bookingDate" value="">
       <div class="card h-100 shadow-sm lab-card-hover">
 
         <div class="position-relative">
@@ -75,13 +76,14 @@
             Available Slots: {{freeSeats}}
           </p>
 
-          <button class="btn btn-outline-primary btn-sm mt-2">
+          <!-- Submit button instead of link -->
+          <button type="submit" class="btn btn-outline-primary btn-sm mt-2">
             View & Reserve
           </button>
         </div>
 
       </div>
-    </a>
+    </form>
 
   </div>
   {{/each}}

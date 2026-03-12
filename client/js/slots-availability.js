@@ -10,3 +10,17 @@ sessionStorage.clear();
     bookingForm.submit();
   });
 });
+
+function updateHiddenInputs() {
+  document.querySelectorAll('input[name="bookingDate"]').forEach(input => {
+    input.value = bookingDate.value;
+  });
+  document.querySelectorAll('input[name="bookingTime"]').forEach(input => {
+    input.value = bookingTime.value;
+  });
+}
+
+bookingDate.addEventListener('change', updateHiddenInputs);
+bookingTime.addEventListener('change', updateHiddenInputs);
+
+updateHiddenInputs();

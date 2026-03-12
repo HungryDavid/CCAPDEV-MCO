@@ -3,6 +3,7 @@ const Reservation = require('../reservations/Reservation');
 const { getTimeSlots, renderErrorPage} = require('../util/helpers');
 
 
+
 exports.getManageLabsPage = async (req, res) => {
   try {
     // Fetch all labs from the database
@@ -37,6 +38,7 @@ exports.getAllAvailableLabs = async (req, res) => {
     const availableLabsNoRoomFilter = await Laboratory.getAvailableLabs(selectedDate, selectedTime);
     const labNamesArray = availableLabsNoRoomFilter.map(lab => lab.name);
 
+    console.log(selectedDate, selectedTime);
     res.render('slots-availability', {
       title: 'Slots Availability',
       headerTitle: 'Slots Availability',
@@ -138,18 +140,17 @@ exports.deleteLab = async (req, res) => {
 
 exports.getLabSeats = async (req, res) => {
   try {
-    const selectedDate = req.query.bookingDate;
-    const selectedTime = req.query.bookingTime;
-    const selectedLabName = req.params.labName;
+    const { bookingTime, bookingDate, labName, cartSession} = req.body;
+    const selectedDate = bookingDate;
+    const selectedTime = bookingTime;
+    const selectedLabName = labName;
 
-    const labId = await Laboratory.getIdByName(req.params.labName);
+    const labId = await Laboratory.getIdByName(selectedLabName);
     const lab = await Laboratory.getLabById(labId);
     const labSeats = await Laboratory.getLabSeats(selectedLabName, selectedTime, selectedDate);
     const timeSlotsArray = getTimeSlots(30, lab.openTime, lab.closeTime, selectedDate);
-  
 
     res.render("lab-details", {
-      bookingTime: selectedTime,
       labSeats,
       selectedDate,
       selectedTime,
@@ -157,7 +158,8 @@ exports.getLabSeats = async (req, res) => {
       layout: "dashboard",
       activePage: "slots-availability",
       headerTitle: lab.name,
-      lab
+      lab,
+      cartSession
     });
   } catch (err) {
     renderErrorPage(res, err);
@@ -170,9 +172,9 @@ exports.getSeatStatus = async (req, res) => {
     const selectedDate = req.query.bookingDate;
     const selectedTime = req.query.bookingTime;
     const selectedLabName = req.params.labName;
-    console.log(selectedDate,selectedTime, selectedLabName);
     const labSeats = await Laboratory.getLabSeats(selectedLabName, selectedTime, selectedDate);
     return res.json(labSeats);
+      
   } catch (err) {
     console.error("Error fetching lab details:", err);
     res.redirect("/");

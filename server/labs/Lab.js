@@ -110,31 +110,33 @@ laboratorySchema.statics.areSeatsAvailable = async function (labName, date, time
     console.log('--- areSeatsAvailable Debug ---');
     console.log('Lab Name:', labName);
     console.log('Date:', date);
-    console.log('Time Slots:', timeSlots);
+    console.log('Requested Time Slots:', timeSlots);
     console.log('Requested Seats:', seatNumbers);
 
-    // 1. Find the laboratory document by 'name' to get its ObjectId
+    // 1️⃣ Find the laboratory
     const lab = await this.findOne({ name: labName });
-    if (!lab) {
-      console.log('Lab not found');
-      throw new Error(`Laboratory "${labName}" not found.`);
-    }
+    if (!lab) throw new Error(`Laboratory "${labName}" not found.`);
     console.log('Lab found:', lab._id.toString(), 'Capacity:', lab.capacity);
 
-    // 2. Query the Reservation model using the lab's ObjectId
+    // 2️⃣ Query reservations for that lab & date
     const Reservation = mongoose.model('Reservation');
-    const filter = { laboratory: lab._id, date: date };
-    const existingReservations = await Reservation.find(filter);
+    const existingReservations = await Reservation.find({ laboratory: lab._id, date });
     console.log('Existing Reservations:', existingReservations.length);
 
-    // 3. Check for overlaps
+    // 3️⃣ Check each requested time slot for seat conflicts
     for (const time of timeSlots) {
       console.log(`Checking time slot: ${time}`);
+
+      // Get all seats already reserved at this time
       const reservedSeats = existingReservations
-        .filter(r => r.timeSlots.includes(time))
-        .flatMap(r => r.seatNumbers || [r.seatNumber]);
+        .flatMap(r => r.slots
+          .filter(s => s.timeSlot === time)
+          .map(s => s.seatNumber)
+        );
+
       console.log(`Reserved seats for time ${time}:`, reservedSeats);
 
+      // Check if any requested seat is already taken
       const conflict = seatNumbers.some(seat => reservedSeats.includes(seat));
       if (conflict) {
         console.log(`Conflict found for seats ${seatNumbers} at time ${time}`);
@@ -150,20 +152,12 @@ laboratorySchema.statics.areSeatsAvailable = async function (labName, date, time
   }
 };
 
-/**
- * Get available laboratories for a single date and time with available seat count and building image
- * @param {String} bookingDate - Date of booking (YYYY-MM-DD)
- * @param {String} bookingTime - Single time slot (e.g., "09:00")
- * @param {Array|null} rooms - Optional array of lab names to filter; if null or empty, return all labs
- * @returns {Array} - List of available labs with freeSeats and image
- */
 laboratorySchema.statics.getAvailableLabs = async function (bookingDate, bookingTime, rooms = null) {
-  const Reservation = mongoose.model('Reservation');
+  const Reservation = mongoose.model("Reservation");
 
-  // 1. Filter labs if rooms array is provided and not empty
+  // 1️⃣ Filter labs if rooms array is provided
   let labFilter = {};
   if (Array.isArray(rooms)) {
-    // Remove null or empty strings
     const filteredRooms = rooms.filter(r => r);
     if (filteredRooms.length > 0) {
       labFilter.name = { $in: filteredRooms };
@@ -175,124 +169,89 @@ laboratorySchema.statics.getAvailableLabs = async function (bookingDate, booking
 
   const labIds = labs.map(lab => lab._id);
 
-  // 2. Find reservations on the date for these labs
+  // 2️⃣ Find reservations for the date
   const reservations = await Reservation.find({
     laboratory: { $in: labIds },
     date: bookingDate
   }).lean();
 
-  // 3. Map labs to available seats and assign building image
+  // 3️⃣ Process labs
   const availableLabs = labs.map(lab => {
-    const labReservations = reservations.filter(r => r.laboratory.toString() === lab._id.toString());
+    // Check if bookingTime is within lab operating hours
+    const open = moment(lab.openTime, "HH:mm");
+    const close = moment(lab.closeTime, "HH:mm");
+    const booking = moment(bookingTime, "HH:mm");
 
-    // Get all reserved seats for this time slot
-    const reservedSeats = labReservations.flatMap(r => r.timeSlots.includes(bookingTime)
-      ? (r.seatNumbers || [r.seatNumber])
-      : []
+    if (!booking.isBetween(open, close, undefined, "[)")) {
+      return null; // booking time not within lab schedule
+    }
+
+    // Reservations for this lab
+    const labReservations = reservations.filter(
+      r => r.laboratory.toString() === lab._id.toString()
+    );
+
+    // Collect reserved seats at the specific bookingTime
+    const reservedSeats = labReservations.flatMap(r =>
+      r.slots
+        .filter(s => s.timeSlot === bookingTime)
+        .map(s => s.seatNumber)
     );
 
     const freeSeats = lab.capacity - reservedSeats.length;
 
-    // Assign image based on lab name prefix
-    let image = lab.image || 'lab-default.jpg';
-    if (lab.name.startsWith("GK")) {
-      image = "/imgs/gk-building.jpg";
-    } else if (lab.name.startsWith("LS")) {
-      image = "/imgs/ls-building.png";
-    } else if (lab.name.startsWith("VL")) {
-      image = "/imgs/vl-building.jpg";
-    }
+    // Assign building image
+    let image = lab.image || "lab-default.jpg";
+    if (lab.name.startsWith("GK")) image = "/imgs/gk-building.jpg";
+    else if (lab.name.startsWith("LS")) image = "/imgs/ls-building.png";
+    else if (lab.name.startsWith("VL")) image = "/imgs/vl-building.jpg";
 
     return {
       ...lab,
       freeSeats,
       image
     };
-  }).filter(lab => lab.freeSeats > 0); // only include labs with available seats
+  })
+  .filter(lab => lab && lab.freeSeats > 0); // remove null + full labs
 
   return availableLabs;
 };
 
-
 laboratorySchema.statics.getLabSeats = async function(labName, timeSlot, date) {
-  try {
-    // 1. Validate Date
-    const currentDate = moment(); // current date
-    const inputDate = moment(date); // user's selected date
+  const lab = await this.findOne({ name: labName });
+  if (!lab) throw new CustomError(404, 'Not Found', 'Lab not found.');
 
-    // Check if the selected date is a valid date
-    if (!inputDate.isValid()) {
-      throw new CustomError(400, 'Bad Request', 'The date format is invalid.');
-    }
+  const query = { laboratory: lab._id, date };
+  if (timeSlot) query["slots.timeSlot"] = timeSlot;
 
-    // Ensure that the selected date is within the next 7 days from today
-    const sevenDaysFromNow = moment().add(7, 'days'); // 7 days from current date
-    if (inputDate.isBefore(currentDate, 'day') || inputDate.isAfter(sevenDaysFromNow, 'day')) {
-      throw new CustomError(400, 'Bad Request', 'Booking date must be within the next 7 days.');
-    }
+  const reservations = await Reservation.find(query).populate({ path: 'studentId', select: 'name' });
 
-    // 2. Validate Time Slot (ensure it's in HH:mm format)
-    const timeSlotRegex = /^([01]\d|2[0-3]):([0-5]\d)$/; // Regular expression for 24-hour time format (HH:mm)
-    if (timeSlot && !timeSlotRegex.test(timeSlot)) {
-      throw new CustomError(400, 'Bad Request', 'Invalid time format. Expected HH:mm.');
-    }
-
-    // 3. Proceed with fetching lab details
-    const lab = await this.findOne({ name: labName });
-    if (!lab) {
-      throw new CustomError(404, 'Not Found', 'Lab not found.');
-    }
-
-    // Correct query for timeSlots (array)
-    const query = { laboratory: lab._id, date: date };
-    if (timeSlot) query.timeSlots = { $in: [timeSlot] };
-
-    const reservations = await Reservation.find(query).populate({
-      path: 'studentId',
-      model: 'User',
-      select: 'name'
-    });
-
-    // 4. Build seat map
-    const seatMap = new Map();
-    reservations.forEach(res => {
-      res.seatNumbers.forEach(seat => {
-        seatMap.set(seat.toString(), { // normalize
+  const seatMap = new Map();
+  reservations.forEach(res => {
+    res.slots.forEach(slot => {
+      if (!timeSlot || slot.timeSlot === timeSlot) {
+        seatMap.set(slot.seatNumber.toString(), {
           user: res.anonymous
             ? { name: 'Anonymous', id: null }
             : { name: res.studentId?.name || 'Unknown', id: res.studentId?._id || null },
           status: 'reserved'
         });
-      });
-    });
-
-    // 5. Build seat status array
-    const seatStatus = [];
-    for (let seat = 1; seat <= lab.capacity; seat++) {
-      const seatStr = seat.toString();
-      if (seatMap.has(seatStr)) {
-        seatStatus.push({
-          seatNumber: seat,
-          user: seatMap.get(seatStr).user,
-          status: 'reserved'
-        });
-      } else {
-        seatStatus.push({
-          seatNumber: seat,
-          user: { name: null, id: null },
-          status: 'available'
-        });
       }
-    }
-    return seatStatus;
+    });
+  });
 
-  } catch (err) {
-    if (err instanceof CustomError) {
-      throw err; // Re-throw the custom error to be handled at the API level or UI
-    } else {
-      throw new CustomError(500, 'InternalServerError', 'Failed to fetch lab slot status');
-    }
+  const seatStatus = [];
+  for (let seat = 1; seat <= lab.capacity; seat++) {
+    const seatStr = seat.toString();
+    seatStatus.push({
+      seatNumber: seat,
+      user: seatMap.get(seatStr)?.user || { name: null, id: null },
+      status: seatMap.get(seatStr)?.status || 'available'
+    });
   }
+
+
+  return seatStatus;
 };
 
 

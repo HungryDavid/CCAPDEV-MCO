@@ -6,41 +6,51 @@ const { getTimeSlots, renderErrorPage } = require('../util/helpers');
 
 exports.createReservation = async (req, res) => {
   try {
-    const {selectedLab, selectedDate, labCart } = req.body; // selections = { time: [seatNumber] }
+    const { selectedLab, selectedDate, labCart } = req.body;
     const studentId = req.session.userId;
-    const anonymous = true;
+    const anonymous = false;
 
-    // Get labId from the name (assuming this logic stays the same)
+    // 1️⃣ Get labId from lab name
     const labId = await Laboratory.getIdByName(selectedLab);
 
-    const timeSlots = Object.keys(labCart);
-    const seatNumbers = Object.values(labCart).map(item => item.seatNumber);
+    // 2️⃣ Transform labCart into slots array
+    // labCart = { "16:00": { seatNumber: "15", status: "available" } }
+    const slots = [];
+    for (const [timeSlot, seatObj] of Object.entries(labCart)) {
+      if (!seatObj || !seatObj.seatNumber) continue;
 
+      // Convert seatNumber to number
+      const seatNumber = Number(seatObj.seatNumber);
+      if (isNaN(seatNumber)) continue;
 
-    // Now that the controller only prepares data, let the model handle validation and creation
+      slots.push({ timeSlot, seatNumber });
+    }
+
+    if (slots.length === 0) {
+      return res.status(400).json({ message: "No seats selected." });
+    }
+
+    // 3️⃣ Call the model to handle creation
     await Reservation.createReservation({
       studentId,
       anonymous,
       laboratory: labId,
       date: selectedDate,
-      timeSlots,
-      seatNumbers,
+      slots
     });
 
     res.status(200).json({
-      message: "Reservation confirmed successfully!",
+      message: "Reservation confirmed successfully!"
     });
+
   } catch (err) {
     console.log(err);
     const statusCode = err.errorNumber || 500;
-
-    // Format: "Conflict: You have already reserved a seat for 01:00 in this lab. (409)"
-    const formattedMessage = `${err.errorMessage} (${statusCode})`;
+    const formattedMessage = `${err.errorMessage || err.message} (${statusCode})`;
 
     res.status(statusCode).json({
       message: formattedMessage
     });
-
   }
 };
 
@@ -70,30 +80,27 @@ exports.editReservationById = async (req, res) => {
   try {
     const reservationId = req.params.id;
     const reservation = await Reservation.getReservationById(reservationId);
-
-
     if (!reservation) {
       return res.status(404).send('Reservation not found');
     }
-
-
     const selectedTime = reservation.timeSlots[0];
     const selectedLabName = reservation.laboratory.name;
     const selectedDate = reservation.date;
     const lab = reservation.laboratory;
     const labSeats = await Laboratory.getLabSeats(selectedLabName, selectedTime, selectedDate);
-    const timeSlotsArray = getTimeSlots(true, 30, lab.openTime, lab.closeTime, selectedDate);
-
-
+    const timeSlotsArray = getTimeSlots(30, lab.openTime, lab.closeTime, selectedDate);
     // Example server-side in editReservationById
     // Convert reservationSeats directly to the cart format
     const reservationSeats = {};
 
-    reservation.seatNumbers?.forEach(seatNumber => {
-      if (!reservationSeats[selectedTime]) reservationSeats[selectedTime] = [];
-      reservationSeats[selectedTime].push(seatNumber.toString()); // convert to string if your cart stores strings
+    reservation.timeSlots.forEach((time, index) => {
+      reservationSeats[time] = {
+        seatNumber: String(reservation.seatNumbers[index]),
+        status: 'checking...'
+      };
     });
 
+    console.log(reservationSeats);
     res.render("lab-details", {
       labSeats,
       selectedDate,

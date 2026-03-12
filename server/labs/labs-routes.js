@@ -4,8 +4,9 @@ const  controller = require('./labs-controller');
 const { authorize } = require('../middleware/auth-middleware');
 
 router.get("/:labName/availability", controller.getSeatStatus);
-router.get('/slots-availability/:labName', controller.getLabSeats);
 router.get('/slots-availability', controller.getAllAvailableLabs);
+router.post('/slots-availability/:labName', controller.getLabSeats);
+
 
 
 authorize('technician');
