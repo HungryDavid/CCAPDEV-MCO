@@ -111,48 +111,52 @@ reservationSchema.statics.createReservation = async function ({ studentId, anony
  * Update a reservation
  */
 reservationSchema.statics.updateReservationFromCart = async function (reservationId, sessionCart) {
-  if (!mongoose.Types.ObjectId.isValid(reservationId)) {
-    throw new CustomError(400, 'Bad Request', 'Invalid reservation ID.');
-  }
+  try {
+    // 1️⃣ Fetch the old reservation
+    const reservation = await this.findById(reservationId);
+    if (!reservation) {
+      throw new CustomError(404, 'Not Found', 'Reservation not found.');
+    }
 
-  // 1️⃣ Fetch the old reservation
-  const reservation = await this.findById(reservationId);
-  if (!reservation) throw new CustomError(404, 'Not Found', 'Reservation not found.');
-
-  // 2️⃣ Convert old slots to a map for easier access
-  const oldSlotsMap = new Map();
-  reservation.slots.forEach(slot => {
-    oldSlotsMap.set(slot.timeSlot, slot.seatNumber);
-  });
-
-  // 3️⃣ Build new slots array
-  const newSlots = [];
-
-  // 3a. Replace or add slots from sessionCart
-  for (const [timeSlot, seatData] of Object.entries(sessionCart)) {
-    newSlots.push({
-      timeSlot,
-      seatNumber: Number(seatData.seatNumber)
+    // 2️⃣ Convert old slots to a map for easier access
+    const oldSlotsMap = new Map();
+    reservation.slots.forEach(slot => {
+      oldSlotsMap.set(slot.timeSlot, slot.seatNumber);
     });
-  }
 
-  // 3b. Keep old slots that were not included in sessionCart
-  reservation.slots.forEach(slot => {
-    if (!sessionCart.hasOwnProperty(slot.timeSlot)) {
+    // 3️⃣ Build new slots array
+    const newSlots = [];
+
+    // 3a. Replace or add slots from sessionCart
+    for (const [timeSlot, seatData] of Object.entries(sessionCart)) {
       newSlots.push({
-        timeSlot: slot.timeSlot,
-        seatNumber: slot.seatNumber
+        timeSlot,
+        seatNumber: Number(seatData.seatNumber)
       });
     }
-  });
 
-  // 4️⃣ Assign updated slots to reservation
-  reservation.slots = newSlots;
+    // 3b. Keep old slots that were not included in sessionCart
+    reservation.slots.forEach(slot => {
+      if (!sessionCart.hasOwnProperty(slot.timeSlot)) {
+        newSlots.push({
+          timeSlot: slot.timeSlot,
+          seatNumber: slot.seatNumber
+        });
+      }
+    });
 
-  // 5️⃣ Save
-  await reservation.save();
+    // 4️⃣ Assign updated slots to reservation
+    reservation.slots = newSlots;
 
-  return reservation;
+    // 5️⃣ Save
+    await reservation.save();
+
+    return reservation;
+  } catch (error) {
+    // You can log the error or wrap it in a CustomError if needed
+    console.log('Error updating reservation:', error);
+    throw error; // rethrow so the caller can handle it
+  }
 };
 
 /**

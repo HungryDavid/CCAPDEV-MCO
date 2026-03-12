@@ -161,7 +161,6 @@ exports.getLabSeats = async (req, res) => {
       });
 
     } 
-    console.log(cartSession);
     const labId = await Laboratory.getIdByName(selectedLabName);
     const lab = await Laboratory.getLabById(labId);
     const labSeats = await Laboratory.getLabSeats(selectedLabName, selectedTime, selectedDate);

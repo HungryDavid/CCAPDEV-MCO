@@ -77,9 +77,11 @@ exports.getReservationById = async (req, res) => {
 };
 
 exports.updateReservation = async (req, res) => {
+  console.error("INNN");
   try {
     const { reservationId, sessionCart } = req.body;
 
+    console.log(req.body);
     if (!reservationId || !sessionCart || Object.keys(sessionCart).length === 0) {
       return res.status(400).json({ message: 'Reservation ID and session cart are required.' });
     }
@@ -103,6 +105,7 @@ exports.updateReservation = async (req, res) => {
     });
 
   } catch (err) {
+    console.log(err);
     console.error('Error updating reservation:', err);
     const statusCode = err.errorNumber || 500;
     res.status(statusCode).json({
@@ -134,31 +137,7 @@ exports.getReservations = async (req, res) => {
 
 
 
-exports.updateReservation = async (req, res) => {
-  try {
 
-    const { id } = req.params;
-    const { selections, date, laboratory } = req.body;
-
-    const updateData = {};
-
-    if (selections) {
-      updateData.timeSlots = Reservation.parseSelections(selections);
-    }
-
-    if (date) updateData.date = date;
-    if (laboratory) updateData.laboratory = laboratory;
-
-    const updated = await Reservation.updateReservation(id, updateData);
-
-    res.json(updated);
-
-  } catch (err) {
-
-    res.status(400).send(err.message);
-
-  }
-};
 
 exports.deleteReservation = async (req, res) => {
   try {
