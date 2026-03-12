@@ -6,8 +6,13 @@ const { getTimeSlots, renderErrorPage } = require('../util/helpers');
 
 exports.createReservation = async (req, res) => {
   try {
-    const { selectedLab, selectedDate, labCart } = req.body;
-    const studentId = req.session.userId;
+    const { studentNumber, selectedLab, selectedDate, labCart } = req.body;
+    let studentId = req.session.userId;
+
+    if (req.session.role === "technician") {
+      studentId = await User.getIdByStudentId(studentNumber);
+    }
+
     const anonymous = false;
 
     // 1️⃣ Get labId from lab name
@@ -142,11 +147,27 @@ exports.getReservations = async (req, res) => {
 exports.deleteReservation = async (req, res) => {
   try {
 
+    const { labName, bookingDate, bookingTime, seatNumber } = req.body;
+    const seat = parseInt(seatNumber, 10);
 
-    const { id } = req.body;
+    if (isNaN(seat)) {
+      return res.status(400).send({ error: "Invalid seat number provided." });
+    }
+
+     console.log(labName, bookingDate, bookingTime, seat);
+
+    let { id } = req.body;
+    if (labName && bookingDate && bookingTime && seat) {
+      id = await Reservation.getReservationIdByLabNameDateTimeSeat(
+        labName,
+        bookingDate,
+        bookingTime,
+        seat
+      );
+    }
 
     await Reservation.deleteReservation(id);
-    res.redirect("/reservation");
+    res.redirect("/labs/slots-availability");
 
   } catch (err) {
 
@@ -159,8 +180,8 @@ exports.deleteReservation = async (req, res) => {
 exports.checkSeatAvailability = async (req, res, next) => {
   try {
     // Extract data from the request body
-    const { selectedLab, selectedDate, labCart } = req.body;
 
+    const { selectedLab, selectedDate, labCart } = req.body;
     const timeSlots = Object.keys(labCart);
     const seatNumbers = Object.values(labCart);
     const labId = await Laboratory.getIdByName(selectedLab);

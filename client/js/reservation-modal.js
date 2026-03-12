@@ -40,9 +40,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 seatNo = row.querySelector('small:contains("Seat#")')?.textContent.split('#')[1].trim();
             }
 
-            console.log('Time Slot:', timeSlot);
-            console.log('Seat No:', seatNo);
-
             // Optional: redirect to the edit page
             window.location.href = button.getAttribute('href');
         });

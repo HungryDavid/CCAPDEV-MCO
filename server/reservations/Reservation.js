@@ -247,4 +247,28 @@ reservationSchema.statics.getUpcomingReservationsByUser = async function (userId
   }
 };
 
+reservationSchema.statics.getReservationIdByLabNameDateTimeSeat = async function(labName, date, timeSlot, seatNumber) {
+  if (!labName || !date || !timeSlot || seatNumber === undefined) {
+    throw new Error('labName, date, timeSlot, and seatNumber are required');
+  }
+
+  // 1️⃣ Find the laboratory by name
+  const lab = await mongoose.model('Laboratory').findOne({ name: labName });
+  if (!lab) {
+    throw new Error('Laboratory not found');
+  }
+
+  // 2️⃣ Find the reservation matching the lab, date, timeSlot, and seatNumber
+  const reservation = await this.findOne({
+    laboratory: lab._id,
+    date: date,
+    slots: {
+      $elemMatch: { timeSlot: timeSlot, seatNumber: Number(seatNumber) }
+    }
+  }).select('_id');
+
+  // 3️⃣ Return reservation ID or null if not found
+  return reservation?._id || null;
+};
+
 module.exports = mongoose.model('Reservation', reservationSchema);

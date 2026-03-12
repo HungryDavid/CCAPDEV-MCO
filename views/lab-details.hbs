@@ -84,8 +84,26 @@
       Confirm Reservation
     </button>
     {{/if}}
+
+      {{#if isTechnician}}
+    <!-- Only visible to technicians -->
+    <button id="editReservationBtn" class="btn btn-warning ms-2">
+      Edit
+    </button>
+  <form id="deleteReservationForm" method="POST" action="/reservation/delete" class="d-inline">
+    <input type="hidden" name="labName" value="{{lab.name}}" />
+    <input type="hidden" name="bookingDate" value="{{selectedDate}}" />
+    <input type="hidden" name="bookingTime" value="{{selectedTime}}" />
+    <input type="hidden" name="seatNumber" id="deleteSeatNumber" />
+     <input type="hidden" name="seatNumber" id="seatNumber" />
+    <button type="submit" class="btn btn-danger" id="deleteReservationBtn">Delete</button>
+  </form>
+
+    <input type="hidden" name="seatNumber" id="seatNumber" />
+  {{/if}}
   </div>
 </div>
 
+<input type="hidden" id="isTechnician" value='{{isTechnician}}' />
 <input type="hidden" id="cartSessionInput" value='{{cartSession}}' />
 <script src="/js/lab-details.js"></script>

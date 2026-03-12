@@ -4,6 +4,7 @@ const { getTimeSlots, renderErrorPage } = require('../util/helpers');
 
 
 
+
 exports.getManageLabsPage = async (req, res) => {
   try {
     // Fetch all labs from the database
@@ -140,11 +141,16 @@ exports.deleteLab = async (req, res) => {
 
 exports.getLabSeats = async (req, res) => {
   try {
-    let { bookingTime, bookingDate, labName, cartSession, reservationId } = req.body;
+
+    let {seatNumber, bookingTime, bookingDate, labName, cartSession, reservationId } = req.body;
     let selectedDate = bookingDate;
     let selectedTime = bookingTime;
     let selectedLabName = labName;
     let reservation;
+
+    if (seatNumber){
+      reservationId = await Reservation.getReservationIdByLabNameDateTimeSeat(labName, bookingDate, bookingTime, seatNumber)
+    }
 
     if (reservationId) {
       reservation = await Reservation.getReservationById(reservationId); 4
@@ -159,8 +165,9 @@ exports.getLabSeats = async (req, res) => {
           status: 'checking...'                  // or 'reserved', depending on your logic
         };
       });
-
     } 
+
+    
     const labId = await Laboratory.getIdByName(selectedLabName);
     const lab = await Laboratory.getLabById(labId);
     const labSeats = await Laboratory.getLabSeats(selectedLabName, selectedTime, selectedDate);
@@ -175,7 +182,8 @@ exports.getLabSeats = async (req, res) => {
       headerTitle: lab.name,
       lab,
       cartSession: JSON.stringify(cartSession),
-      reservation
+      reservation,
+      isTechnician: req.session.role === "technician"
     });
   } catch (err) {
     console.log(err);

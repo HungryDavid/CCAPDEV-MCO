@@ -238,5 +238,19 @@ userSchema.statics.readUserSafeAndPublic = async function (identifier) {
     .select('-password');
 };
 
+userSchema.statics.getIdByStudentId = async function (idNumber) {
+  if (!idNumber) {
+    throw new Error('Student ID is required.');
+  }
+
+  const user = await this.findOne({ idNumber }).select('_id');
+
+  if (!user) {
+    throw new Error('User not found.');
+  }
+
+  return user._id;
+};
+
 const User = mongoose.model('User', userSchema);
 module.exports = User; // Export the User model 

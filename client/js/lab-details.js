@@ -9,11 +9,14 @@ document.addEventListener("DOMContentLoaded", function () {
   const confirmButton = document.getElementById("confirmReservationBtn");
   const updateButton = document.getElementById("updateButton");
   const seatButtons = document.querySelectorAll(".seat-btn");
+  const editButton = document.getElementById("editReservationBtn");
 
+  const seatNumberInput = document.getElementById("seatNumber");
   const bookingDate = bookingDateElement?.value;
   let bookingTime = bookingTimeElement?.value;
   let selectedLab = labElement?.value;
   const reservationId = reservationIdElement?.value; // safe access, even if element is missing
+  const isTechnician = document.getElementById("isTechnician").value === "true";
 
   const cartInput = document.getElementById("cartSessionInput");
   if (cartInput && cartInput.value) {
@@ -186,6 +189,10 @@ function renderSelectedSeats() {
 
   // Make confirm button safe
   confirmButton?.addEventListener("click", async function () {
+    let studentNumber;
+    if (isTechnician){
+      studentNumber = prompt("Enter student ID:");
+    }
     const labCart = JSON.parse(sessionStorage.getItem("labCart")) || {};
     if (Object.keys(labCart).length === 0) return;
 
@@ -196,7 +203,7 @@ function renderSelectedSeats() {
       const response = await fetch(`/reservation/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reservationId, selectedLab, selectedDate: bookingDateElement?.value, labCart }),
+        body: JSON.stringify({ studentNumber, reservationId, selectedLab, selectedDate: bookingDateElement?.value, labCart }),
       });
 
       const result = await response.json();
@@ -259,6 +266,40 @@ function renderSelectedSeats() {
     }
   });
 
+editButton?.addEventListener("click", function () {
+  let seatNumber = "";
+
+  if (isTechnician) {
+    seatNumber = prompt("Enter seat number to edit:")?.trim() || "";
+  }
+
+  if (!seatNumber) return alert("Seat number is required!");
+
+  seatNumberInput.value = seatNumber;
+  document.querySelector("#timeSelectForm").submit();
+});
+
+
+const deleteButton = document.getElementById("deleteReservationBtn");
+const deleteForm = document.getElementById("deleteReservationForm");
+const deleteSeatInput = document.getElementById("deleteSeatNumber");
+
+deleteButton?.addEventListener("click", function (e) {
+  e.preventDefault(); // Prevent default form submission
+
+  // Ask technician for seat number
+  const seatNumber = prompt("Enter seat number to delete:")?.trim();
+  if (!seatNumber) return alert("Seat number is required!");
+
+  // Optional confirmation
+  if (!confirm(`Are you sure you want to delete reservation for seat ${seatNumber}?`)) return;
+
+  // Set the hidden input value before submitting
+  deleteSeatInput.value = seatNumber;
+
+  // Submit the form
+  deleteForm.submit();
+});
 
   setInterval(update, 2000);
   renderSelectedSeats();
