@@ -30,6 +30,21 @@
     <input type="hidden" name="cartData" id="cartDataInput" />
   </form>
 
+  {{#hasRole user "technician"}}
+  <div class="card mb-3 border-primary">
+    <div class="card-body">
+      <h6 class="card-title text-primary">Technician Tools: Walk-in Reservation</h6>
+      <div class="row align-items-center">
+        <div class="col-md-6">
+          <label for="walkInStudent" class="form-label">Student ID or Name:</label>
+          <input type="text" id="walkInStudent" name="walkInStudent" class="form-control" placeholder="e.g., 12112345">
+          <small class="text-muted">Enter the student's details for this walk-in session.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+  {{/hasRole}}
+
   <!-- SEAT GRID -->
   <div class="row" id="seatGrid">
     {{#each labSeats}}

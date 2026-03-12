@@ -330,10 +330,13 @@ document.addEventListener("DOMContentLoaded", function () {
         requestBody.seat = String(firstSeat);
       }
     } else {
+      const walkInInput = document.getElementById("walkInStudent");
+      const walkInStudent = walkInInput ? walkInInput.value : null;
       requestBody = {
         selectedLab,
         selectedDate: bookingDateInput.value,
         labCart,
+        walkInStudent
       };
     }
 

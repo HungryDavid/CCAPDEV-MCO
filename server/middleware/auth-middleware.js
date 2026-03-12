@@ -25,7 +25,7 @@ exports.ensureGuest = (req, res, next) => {
 // 3. Role-Based Authorization: Lab Technician Only
 exports.ensureLabTech = (req, res, next) => {
     // Check if logged in AND role is correct
-    if (req.session.userId && req.session.role === 'Lab Technician') {
+    if (req.session.userId && req.session.role === 'technician') {
         return next();
     }
     // If they are logged in but not a tech, send 403 (Forbidden) or redirect

@@ -6,9 +6,19 @@ const { getTimeSlots, renderErrorPage } = require('../util/helpers');
 
 exports.createReservation = async (req, res) => {
   try {
-    const {selectedLab, selectedDate, labCart } = req.body; // selections = { time: [seatNumber] }
-    const studentId = req.session.userId;
-    const anonymous = true;
+    const {selectedLab, selectedDate, labCart, walkInStudent } = req.body; // selections = { time: [seatNumber] }
+    const userId = req.session.userId;
+    const userRole = req.session.role;
+
+    let studentId = userId;
+    let walkInDetails = null;
+    let isAnonymous = req.body.isAnonymous || false;
+
+    if (userRole === 'technician' && walkInStudent) {
+      studentId = null; // Walk-ins aren't necessarily linked to a system User ID
+      walkInDetails = walkInStudent;
+      isAnonymous = false; // Technicians usually record actual names/IDs
+    }
 
     // Get labId from the name (assuming this logic stays the same)
     const labId = await Laboratory.getIdByName(selectedLab);
@@ -20,7 +30,8 @@ exports.createReservation = async (req, res) => {
     // Now that the controller only prepares data, let the model handle validation and creation
     await Reservation.createReservation({
       studentId,
-      anonymous,
+      walkInStudent: walkInDetails,
+      anonymous: isAnonymous,
       laboratory: labId,
       date: selectedDate,
       timeSlots,

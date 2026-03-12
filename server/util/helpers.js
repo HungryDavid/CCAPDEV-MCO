@@ -140,5 +140,22 @@ module.exports = {
         }
 
         return slots;
-    }
+    },
+
+    getOccupantName: function (reservation) {
+        if (!reservation) return 'Available';
+        
+        //Check if it's a walk-in
+        if (reservation.walkInStudent) {
+            return `Walk-in: ${reservation.walkInStudent}`;
+        }
+        
+        //Check if the student chose to be anonymous
+        if (reservation.anonymous) {
+            return 'Anonymous Student';
+        }
+
+        //Return the registered student's name (populated from User model)
+        return reservation.studentId ? reservation.studentId.name : 'Unknown';
+    },
 };

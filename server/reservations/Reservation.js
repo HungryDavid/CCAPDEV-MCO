@@ -8,6 +8,10 @@ const reservationSchema = new mongoose.Schema({
     ref: 'User',
     default: null // null if anonymous
   },
+  walkInStudent: {
+    type: String,
+    default: null 
+  },
   anonymous: {
     type: Boolean,
     default: false
@@ -134,7 +138,7 @@ reservationSchema.statics.checkSeatAvailabilityConflict = async function (labora
   }
 };
 
-reservationSchema.statics.createReservation = async function ({ studentId, anonymous, laboratory, date, timeSlots, seatNumbers }) {
+reservationSchema.statics.createReservation = async function ({ studentId, walkInStudent, anonymous, laboratory, date, timeSlots, seatNumbers }) {
   // Validate input data directly within the model
   try {
 
@@ -147,11 +151,13 @@ reservationSchema.statics.createReservation = async function ({ studentId, anony
       throw new CustomError(400, 'BadRequest', "Invalid request, missing labId, date, time slots, or seat numbers.");
     }
     // Check for any user reservation conflicts
-    await this.checkUserReservationConflict(studentId, laboratory, date, timeSlots);
+    if (studentId) {
+      await this.checkUserReservationConflict(studentId, laboratory, date, timeSlots);
+    }
     // Then, check for any seat availability conflicts
     await this.checkSeatAvailabilityConflict(laboratory, date, timeSlots, seatNumbers);
     // If no conflicts, proceed with creating the reservation
-    return this.create({ studentId, anonymous, laboratory, date, timeSlots, seatNumbers });
+    return this.create({ studentId, walkInStudent, anonymous, laboratory, date, timeSlots, seatNumbers });
   } catch (err) {
     console.log(err);
     if (err instanceof CustomError) {
