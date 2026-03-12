@@ -86,14 +86,5 @@
   </div>
 </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  // Restore cart from backend data or local variable
-  const cartSession = '{{cartSession}}'; // server sends it back
-  if (cartSession) {
-    sessionStorage.setItem("labCart", cartSession);
-  }
-});
-</script>
-
+<input type="hidden" id="cartSessionInput" value='{{cartSession}}' />
 <script src="/js/lab-details.js"></script>

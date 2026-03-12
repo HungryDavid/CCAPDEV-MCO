@@ -77,10 +77,14 @@
                             <td>{{this.seats}}</td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-2">
-                                    <a href="/reservation/{{this.reservationId}}/edit"
-                                        class="btn btn-sm btn-outline-primary">
-                                        Edit
-                                    </a>
+                                    <form method="POST" action="/labs/slots-availability/{{this.laboratory}}">
+                                        <!-- Pass the reservation ID as a hidden input -->
+                                        <input type="hidden" name="reservationId" value="{{this.reservationId}}" />
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                                            Edit
+                                        </button>
+                                    </form>
+
                                     <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal"
                                         data-bs-target="#deleteReservationModal" data-id="{{this.reservationId}}"
                                         data-laboratory="{{this.laboratory}}" data-date="{{this.date}}"

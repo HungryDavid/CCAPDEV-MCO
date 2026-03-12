@@ -1,6 +1,6 @@
 const Laboratory = require('./Lab');
 const Reservation = require('../reservations/Reservation');
-const { getTimeSlots, renderErrorPage} = require('../util/helpers');
+const { getTimeSlots, renderErrorPage } = require('../util/helpers');
 
 
 
@@ -27,7 +27,7 @@ exports.getManageLabsPage = async (req, res) => {
 
 exports.getAllAvailableLabs = async (req, res) => {
   try {
-    const selectedDate = req.query.bookingDate || new Date().toLocaleDateString('en-CA'); 
+    const selectedDate = req.query.bookingDate || new Date().toLocaleDateString('en-CA');
     const selectedLabName = req.query.labName || null;
     const datesArray = getNextNDates(7);
     const timeSlotsArray = getTimeSlots(30, "00:00", "23:59", req.query.bookingDate);
@@ -140,16 +140,30 @@ exports.deleteLab = async (req, res) => {
 
 exports.getLabSeats = async (req, res) => {
   try {
-    const { bookingTime, bookingDate, labName, cartSession} = req.body;
-    const selectedDate = bookingDate;
-    const selectedTime = bookingTime;
-    const selectedLabName = labName;
+    let { bookingTime, bookingDate, labName, cartSession, reservationId } = req.body;
+    let selectedDate = bookingDate;
+    let selectedTime = bookingTime;
+    let selectedLabName = labName;
 
+    if (reservationId) {
+      const reservation = await Reservation.getReservationById(reservationId); 4
+      selectedTime = reservation.slots?.[0]?.timeSlot; // first slot's time
+      selectedLabName = reservation.laboratory?.name; // safely access name
+      selectedDate = reservation.date;
+      
+      cartSession = {}
+      reservation.slots.forEach(slot => {
+        cartSession[slot.timeSlot] = {
+          seatNumber: String(slot.seatNumber), // convert to string to match your session format
+          status: 'checking...'                  // or 'reserved', depending on your logic
+        };
+      });
+
+    } 
     const labId = await Laboratory.getIdByName(selectedLabName);
     const lab = await Laboratory.getLabById(labId);
     const labSeats = await Laboratory.getLabSeats(selectedLabName, selectedTime, selectedDate);
     const timeSlotsArray = getTimeSlots(30, lab.openTime, lab.closeTime, selectedDate);
-
     res.render("lab-details", {
       labSeats,
       selectedDate,
@@ -159,9 +173,10 @@ exports.getLabSeats = async (req, res) => {
       activePage: "slots-availability",
       headerTitle: lab.name,
       lab,
-      cartSession
+      cartSession: JSON.stringify(cartSession) 
     });
   } catch (err) {
+    console.log(err);
     renderErrorPage(res, err);
   }
 };
@@ -174,7 +189,7 @@ exports.getSeatStatus = async (req, res) => {
     const selectedLabName = req.params.labName;
     const labSeats = await Laboratory.getLabSeats(selectedLabName, selectedTime, selectedDate);
     return res.json(labSeats);
-      
+
   } catch (err) {
     console.error("Error fetching lab details:", err);
     res.redirect("/");

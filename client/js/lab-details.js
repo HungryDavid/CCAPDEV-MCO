@@ -11,32 +11,35 @@ document.addEventListener("DOMContentLoaded", function () {
   const bookingDate = bookingDateElement.value;
   let bookingTime = bookingTimeElement.value;
   let selectedLab = labElement.value;
-  let slotsInCart = JSON.parse(sessionStorage.getItem("labCart")) || {};
+
+const cartInput = document.getElementById("cartSessionInput");
+if (!sessionStorage.getItem("labCart") && cartInput && cartInput.value) {
+  try {
+    const cartData = JSON.parse(cartInput.value);
+    sessionStorage.setItem("labCart", JSON.stringify(cartData));
+    console.log("Cart restored:", cartData);
+  } catch (e) {
+    console.error("Invalid cart data:", e);
+  }
+}
+
+
 
   // ADD TO CART FUNCTION
-  seatButtons.forEach(button => {
-    button.addEventListener('click', function (event) {
-      // Retrieve seat number and booking time from the button's data attributes
-      const seatNumber = event.target.getAttribute('data-seat');
-      const bookingTime = event.target.getAttribute('data-booking-time');
+  let labCart = JSON.parse(sessionStorage.getItem("labCart")) || {};
 
-      // Get the existing cart from sessionStorage or initialize as an empty object
-      let labCart = JSON.parse(sessionStorage.getItem("labCart")) || {};
+seatButtons.forEach(button => {
+  button.addEventListener('click', function (event) {
+    const seatNumber = button.dataset.seat; // simpler than getAttribute
+    const bookingTime = button.dataset.bookingTime;
 
-      // Overwrite the seat for the selected time slot (even if it's already booked)
-      labCart[bookingTime] = {
-        seatNumber: seatNumber,
-        status: 'Checking...'
-      };
+    labCart[bookingTime] = { seatNumber, status: 'Checking...' };
 
-      // Save the updated cart back to sessionStorage
-      sessionStorage.setItem("labCart", JSON.stringify(labCart));
-      renderSelectedSeats();
-      // Provide feedback to the user
-      alert(`Seat ${seatNumber} has been added/updated for the time slot ${bookingTime}.`);
-
-    });
+    sessionStorage.setItem("labCart", JSON.stringify(labCart));
+    renderSelectedSeats();
+    alert(`Seat ${seatNumber} has been added/updated for the time slot ${bookingTime}.`);
   });
+});
 
 
   function renderSelectedSeats() {
@@ -110,9 +113,7 @@ document.addEventListener("DOMContentLoaded", function () {
   ========================= */
   if (bookingTimeElement && timeForm) {
     bookingTimeElement.addEventListener("change", function () {
-      const cartDataInput = document.getElementById("cartDataInput");
-      cartDataInput.value = JSON.stringify(slotsInCart); // send cart to server
-      timeForm.submit();
+      update();
     });
   }
 
@@ -137,7 +138,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       const seatStatus = await response.json();
-      
+
       updateSeatButtons(seatStatus);
       const fetchedData = await fetchCartStatus();
       updateSessionStorage(fetchedData);
@@ -149,7 +150,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function updateSeatButtons(seatStatus) {
-    
+
     // Loop through each seat status returned from the server
     seatStatus.forEach(seat => {
       // Find the button for the seat based on seat number and booking time
