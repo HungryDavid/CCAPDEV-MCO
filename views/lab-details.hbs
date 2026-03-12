@@ -30,7 +30,7 @@
         </select>
       </div>
     </div>
-
+    <input type="hidden" name="seatNumber" id="seatNumber" />
     <input type="hidden" name="cartSession" id="cartSession" />
 </form>
 
@@ -90,16 +90,16 @@
     <button id="editReservationBtn" class="btn btn-warning ms-2">
       Edit
     </button>
+
   <form id="deleteReservationForm" method="POST" action="/reservation/delete" class="d-inline">
     <input type="hidden" name="labName" value="{{lab.name}}" />
     <input type="hidden" name="bookingDate" value="{{selectedDate}}" />
     <input type="hidden" name="bookingTime" value="{{selectedTime}}" />
     <input type="hidden" name="seatNumber" id="deleteSeatNumber" />
-     <input type="hidden" name="seatNumber" id="seatNumber" />
+    <input type="hidden" name="seatNumber" id="seatNumber" />
     <button type="submit" class="btn btn-danger" id="deleteReservationBtn">Delete</button>
   </form>
-
-    <input type="hidden" name="seatNumber" id="seatNumber" />
+  
   {{/if}}
   </div>
 </div>

@@ -276,6 +276,7 @@ editButton?.addEventListener("click", function () {
   if (!seatNumber) return alert("Seat number is required!");
 
   seatNumberInput.value = seatNumber;
+  alert(seatNumberInput.value);
   document.querySelector("#timeSelectForm").submit();
 });
 
