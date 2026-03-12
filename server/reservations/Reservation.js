@@ -110,24 +110,49 @@ reservationSchema.statics.createReservation = async function ({ studentId, anony
 /**
  * Update a reservation
  */
-reservationSchema.statics.updateReservation = async function (reservationId, updateData) {
-  // Check if timeSlots/laboratory/date is being updated
-  if (updateData.timeSlots || updateData.date || updateData.laboratory) {
-    const reservation = await this.findById(reservationId);
-    if (!reservation) throw new Error('Reservation not found');
-
-    const labId = updateData.laboratory || reservation.laboratory;
-    const date = updateData.date || reservation.date;
-    const slots = updateData.timeSlots || reservation.timeSlots;
-
-    const available = await this.areSlotsAvailable(labId, date, slots, reservationId);
-    if (!available) throw new Error('One or more selected slots are already reserved');
+reservationSchema.statics.updateReservationFromCart = async function (reservationId, sessionCart) {
+  if (!mongoose.Types.ObjectId.isValid(reservationId)) {
+    throw new CustomError(400, 'Bad Request', 'Invalid reservation ID.');
   }
 
-  return this.findByIdAndUpdate(reservationId, updateData, {
-    new: true,
-    runValidators: true
+  // 1️⃣ Fetch the old reservation
+  const reservation = await this.findById(reservationId);
+  if (!reservation) throw new CustomError(404, 'Not Found', 'Reservation not found.');
+
+  // 2️⃣ Convert old slots to a map for easier access
+  const oldSlotsMap = new Map();
+  reservation.slots.forEach(slot => {
+    oldSlotsMap.set(slot.timeSlot, slot.seatNumber);
   });
+
+  // 3️⃣ Build new slots array
+  const newSlots = [];
+
+  // 3a. Replace or add slots from sessionCart
+  for (const [timeSlot, seatData] of Object.entries(sessionCart)) {
+    newSlots.push({
+      timeSlot,
+      seatNumber: Number(seatData.seatNumber)
+    });
+  }
+
+  // 3b. Keep old slots that were not included in sessionCart
+  reservation.slots.forEach(slot => {
+    if (!sessionCart.hasOwnProperty(slot.timeSlot)) {
+      newSlots.push({
+        timeSlot: slot.timeSlot,
+        seatNumber: slot.seatNumber
+      });
+    }
+  });
+
+  // 4️⃣ Assign updated slots to reservation
+  reservation.slots = newSlots;
+
+  // 5️⃣ Save
+  await reservation.save();
+
+  return reservation;
 };
 
 /**
@@ -172,13 +197,10 @@ reservationSchema.statics.getReservationById = async function (id) {
 
 reservationSchema.statics.getUpcomingReservationsByUser = async function (userId) {
   try {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const now = moment(); // current date & time
 
-    // 1️⃣ Find upcoming reservations for the user
-    const reservations = await this.find({
-      studentId: userId,
-      date: { $gte: today }
-    })
+    // 1️⃣ Find all reservations for the user (no strict date filtering)
+    const reservations = await this.find({ studentId: userId })
       .populate('laboratory', 'name')
       .select('_id laboratory slots date createdAt')
       .sort({ date: 1 })
@@ -191,8 +213,16 @@ reservationSchema.statics.getUpcomingReservationsByUser = async function (userId
       return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     };
 
-    // 3️⃣ Group slots by reservation
-    const grouped = reservations.map(res => {
+    // 3️⃣ Filter reservations: include if **any slot is current or upcoming**
+    const upcomingReservations = reservations.filter(res => {
+      return res.slots?.some(slot => {
+        const slotMoment = moment(`${res.date} ${slot.timeSlot}`, 'YYYY-MM-DD HH:mm');
+        return slotMoment.isSameOrAfter(now); // slot is current or upcoming
+      });
+    });
+
+    // 4️⃣ Map reservations to output format
+    const grouped = upcomingReservations.map(res => {
       const seats = res.slots?.map(s => s.seatNumber).join(', ') || '';
       const times = res.slots?.map(s => s.timeSlot).join(', ') || '';
 

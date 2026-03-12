@@ -76,50 +76,41 @@ exports.getReservationById = async (req, res) => {
   }
 };
 
-exports.editReservationById = async (req, res) => {
+exports.updateReservation = async (req, res) => {
   try {
-    const reservationId = req.params.id;
-    const reservation = await Reservation.getReservationById(reservationId);
-    if (!reservation) {
-      return res.status(404).send('Reservation not found');
-    }
-    const selectedTime = reservation.timeSlots[0];
-    const selectedLabName = reservation.laboratory.name;
-    const selectedDate = reservation.date;
-    const lab = reservation.laboratory;
-    const labSeats = await Laboratory.getLabSeats(selectedLabName, selectedTime, selectedDate);
-    const timeSlotsArray = getTimeSlots(30, lab.openTime, lab.closeTime, selectedDate);
-    // Example server-side in editReservationById
-    // Convert reservationSeats directly to the cart format
-    const reservationSeats = {};
+    const { reservationId, sessionCart } = req.body;
 
-    reservation.timeSlots.forEach((time, index) => {
-      reservationSeats[time] = {
-        seatNumber: String(reservation.seatNumbers[index]),
-        status: 'checking...'
+    if (!reservationId || !sessionCart || Object.keys(sessionCart).length === 0) {
+      return res.status(400).json({ message: 'Reservation ID and session cart are required.' });
+    }
+
+    // 1️⃣ Update reservation using model method
+    const updatedReservation = await Reservation.updateReservationFromCart(reservationId, sessionCart);
+
+    // 2️⃣ Format slots for response
+    const formattedSlots = {};
+    updatedReservation.slots.forEach(slot => {
+      formattedSlots[slot.timeSlot] = {
+        seatNumber: String(slot.seatNumber),
+        status: 'available' // you can also compute reserved/expired if needed
       };
     });
 
-    console.log(reservationSeats);
-    res.render("lab-details", {
-      labSeats,
-      selectedDate,
-      selectedTime,
-      timeSlotsArray,
-      lab,
-      reservation,
-      reservationSeats,
-      layout: "dashboard",
-      activePage: "slots-availability",
-      headerTitle: lab.name
+    res.status(200).json({
+      message: 'Reservation updated successfully.',
+      reservationId: updatedReservation._id,
+      slots: formattedSlots
     });
 
   } catch (err) {
-    console.log(err);
-    res.status(404).send(err.message);
-
+    console.error('Error updating reservation:', err);
+    const statusCode = err.errorNumber || 500;
+    res.status(statusCode).json({
+      message: err.errorMessage || err.message || 'Internal Server Error'
+    });
   }
 };
+
 
 exports.getReservations = async (req, res) => {
   try {

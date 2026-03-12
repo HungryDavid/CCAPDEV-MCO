@@ -53,13 +53,6 @@
   {{/each}}
 </div>
 
-<!-- Add To Cart -->
-<div class="text-center mt-3">
-  <button id="cart" class="btn btn-success">
-    Add to Cart
-  </button>
-</div>
-
 <!-- Table for Selected Seats -->
 <div class="mt-4" id="selectedSeatsTableContainer">
   <h5>Selected Seats:</h5>
@@ -80,9 +73,17 @@
 
   <!-- Confirm Reservation Button -->
   <div class="text-center mt-3">
+    {{#if reservation}}
+    <!-- Reservation exists: show update button, hide confirm -->
+    <button id="updateButton" class="btn btn-primary">
+      Update Reservation
+    </button>
+    {{else}}
+    <!-- No reservation: show confirm button, hide update -->
     <button id="confirmReservationBtn" class="btn btn-success">
       Confirm Reservation
     </button>
+    {{/if}}
   </div>
 </div>
 

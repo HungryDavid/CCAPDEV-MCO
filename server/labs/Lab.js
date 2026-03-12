@@ -221,11 +221,13 @@ laboratorySchema.statics.getLabSeats = async function(labName, timeSlot, date) {
   const lab = await this.findOne({ name: labName });
   if (!lab) throw new CustomError(404, 'Not Found', 'Lab not found.');
 
+  // Query reservations for this lab and date
   const query = { laboratory: lab._id, date };
   if (timeSlot) query["slots.timeSlot"] = timeSlot;
 
   const reservations = await Reservation.find(query).populate({ path: 'studentId', select: 'name' });
 
+  // Build seat map
   const seatMap = new Map();
   reservations.forEach(res => {
     res.slots.forEach(slot => {
@@ -243,13 +245,24 @@ laboratorySchema.statics.getLabSeats = async function(labName, timeSlot, date) {
   const seatStatus = [];
   for (let seat = 1; seat <= lab.capacity; seat++) {
     const seatStr = seat.toString();
+
+    // Default status
+    let status = seatMap.get(seatStr)?.status || 'available';
+
+    // If timeSlot is passed, mark as expired
+    if (timeSlot) {
+      const slotMoment = moment(`${date} ${timeSlot}`, 'YYYY-MM-DD HH:mm');
+      if (slotMoment.isBefore(new Date())) {
+        status = 'expired';
+      }
+    }
+
     seatStatus.push({
       seatNumber: seat,
       user: seatMap.get(seatStr)?.user || { name: null, id: null },
-      status: seatMap.get(seatStr)?.status || 'available'
+      status
     });
   }
-
 
   return seatStatus;
 };

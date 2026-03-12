@@ -144,9 +144,10 @@ exports.getLabSeats = async (req, res) => {
     let selectedDate = bookingDate;
     let selectedTime = bookingTime;
     let selectedLabName = labName;
+    let reservation;
 
     if (reservationId) {
-      const reservation = await Reservation.getReservationById(reservationId); 4
+      reservation = await Reservation.getReservationById(reservationId); 4
       selectedTime = reservation.slots?.[0]?.timeSlot; // first slot's time
       selectedLabName = reservation.laboratory?.name; // safely access name
       selectedDate = reservation.date;
@@ -160,6 +161,7 @@ exports.getLabSeats = async (req, res) => {
       });
 
     } 
+    console.log(cartSession);
     const labId = await Laboratory.getIdByName(selectedLabName);
     const lab = await Laboratory.getLabById(labId);
     const labSeats = await Laboratory.getLabSeats(selectedLabName, selectedTime, selectedDate);
@@ -173,7 +175,8 @@ exports.getLabSeats = async (req, res) => {
       activePage: "slots-availability",
       headerTitle: lab.name,
       lab,
-      cartSession: JSON.stringify(cartSession) 
+      cartSession: JSON.stringify(cartSession),
+      reservation
     });
   } catch (err) {
     console.log(err);
