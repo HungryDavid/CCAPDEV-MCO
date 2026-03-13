@@ -5,7 +5,6 @@ const {ensureGuest} = require('../middleware/auth-middleware');
 
 router.use('/logout', authController.logoutUser);
 
-router.use(ensureGuest);
 router.get('/login', authController.getLoginPage);
 router.post('/login', authController.loginUser);
 

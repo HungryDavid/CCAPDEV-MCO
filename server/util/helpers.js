@@ -2,32 +2,32 @@ const moment = require('moment'); // npm install moment
 const hbs = require('hbs');
 
 module.exports = {
-    // 1. FORMAT DATE
+    // FORMAT DATE
     formatDate: function (date, format) {
         return moment(date).format(format);
     },
 
-    // 2. EQUALITY CHECK
+    // EQUALITY CHECK
     eq: function (a, b) {
         return a === b;
     },
 
-    // 3. IS SELECTED
+    // IS SELECTED
     isSelected: function (a, b) {
         return a === b ? 'selected' : '';
     },
 
-    // 4. NOT EQUAL
+    // NOT EQUAL
     ne: function (a, b) {
         return a !== b;
     },
 
-    // 5. CHECK IF RESERVED
+    // CHECK IF RESERVED
     seatStatus: function (reservation) {
         return reservation ? 'taken' : 'available';
     },
 
-    // 6. ROLE CHECK
+    // ROLE CHECK
     hasRole: function (user, requiredRole, options) {
         if (!user || !user.role) {
             return options.inverse(this);
@@ -39,17 +39,17 @@ module.exports = {
         return options.inverse(this);
     },
 
-    // 7. DEBUGGING (Dump JSON)
+    // DEBUGGING (Dump JSON)
     json: function (context) {
         return JSON.stringify(context, null, 2);
     },
 
-    // 8. MATH (Add)
+    // MATH (Add)
     add: function (value, addition) {
         return parseInt(value) + parseInt(addition);
     },
 
-    // 9. TRUNCATE TEXT
+    // TRUNCATE TEXT
     truncate: function (str, len) {
         if (str.length > len && str.length > 0) {
             return str.substring(0, len) + '...';
@@ -57,7 +57,7 @@ module.exports = {
         return str;
     },
 
-    // 10. CHECK IF TECHNICIAN
+    // RENDER ERROR
     renderErrorPage: function (res, err) {
         res.render('error', {
             layout: "plain",  // Default layout
@@ -67,14 +67,14 @@ module.exports = {
         });
     },
 
-    // 11. NAV LINK CLASS
+    // NAV LINK CLASS
     navLinkClass: function (currentPath, targetPath) {
         return currentPath === targetPath
             ? 'active text-white bg-primary'
             : 'text-black';
     },
 
-    // 12. TIME SLOTS HELPER
+    // TIME SLOTS HELPER
     getTimeSlots: function (intervalMinutes = 30, start = "19:30", end = "07:15", date = null) {
     const slots = [];
 
