@@ -22,6 +22,7 @@ exports.getManageLabsPage = async (req, res) => {
 
 exports.getAllAvailableLabs = async (req, res) => {
   try {
+    
     const selectedDate = req.query.bookingDate || new Date().toLocaleDateString('en-CA');
     const selectedLabName = req.query.labName || null;
     const datesArray = getNextNDates(7);
@@ -48,7 +49,7 @@ exports.getAllAvailableLabs = async (req, res) => {
     });
 
   } catch (err) {
-    res.redirect('/esfefw');
+    console.log(err);
   }
 };
 
@@ -167,7 +168,8 @@ exports.getLabSeats = async (req, res) => {
       lab,
       cartSession: JSON.stringify(cartSession),
       reservation,
-      isTechnician: req.session.role === "technician"
+      isTechnician: req.session.role === "technician",
+      isLoggedIn: req.session.role
     });
   } catch (err) {
     renderErrorPage(res, err);

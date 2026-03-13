@@ -18,6 +18,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const reservationId = reservationIdElement?.value; // safe access, even if element is missing
   const isTechnician = document.getElementById("isTechnician").value === "true";
 
+  const isAnonymousCheckbox = document.getElementById("isAnonymous");
+  
   const cartInput = document.getElementById("cartSessionInput");
   if (cartInput && cartInput.value) {
     try {
@@ -122,9 +124,10 @@ function renderSelectedSeats() {
     renderSelectedSeats();
   }
 
-  if (bookingTimeElement && timeForm) {
-    bookingTimeElement.addEventListener("change", update);
-  }
+  bookingTimeElement?.addEventListener("change", () => {
+    console.log("UPDATE");
+  update();
+});
 
   async function update() {
     if (!selectedLab || !bookingTimeElement || !bookingDateElement) return;
@@ -146,12 +149,14 @@ function renderSelectedSeats() {
   }
 
   function updateSeatButtons(seatStatus) {
-    console.log(seatStatus);
     if (!bookingTimeElement) return;
-    const bookingTime = bookingTimeElement.value;
-
     seatStatus.forEach(seat => {
-      const seatButton = document.querySelector(`[data-seat="${seat.seatNumber}"][data-booking-time="${bookingTime}"]`);
+
+      const seatButton = document.querySelector(`[data-seat="${seat.seatNumber}"]`);
+        seatButton.dataset.studentId = "";
+  seatButton.textContent = seatButton.dataset.seat;
+  seatButton.title = "Available";
+
       if (!seatButton) return;
 
       if (seat.status === "reserved") {
@@ -214,7 +219,7 @@ function renderSelectedSeats() {
       const response = await fetch(`/reservation/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentNumber, reservationId, selectedLab, selectedDate: bookingDateElement?.value, labCart }),
+        body: JSON.stringify({isAnonymous: isAnonymousCheckbox.checked, studentNumber, reservationId, selectedLab, selectedDate: bookingDateElement?.value, labCart }),
       });
 
       const result = await response.json();
@@ -246,6 +251,7 @@ function renderSelectedSeats() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          isAnonymous: isAnonymousCheckbox.checked,
           reservationId,
           selectedLab,
           selectedDate: bookingDateElement?.value,

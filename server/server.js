@@ -10,10 +10,7 @@ const { connectDB } = require('./config/db');
 const User = require('./users/User');
 const helmet = require('helmet');
 const {
-  ensureAuthenticated,
-  ensureGuest,
-  ensureStudent,
-  ensureLabTech
+  ensureAuthenticated
 } = require('./middleware/auth-middleware');
 
 // Load environment variables from .env file
@@ -51,20 +48,19 @@ app.set('view engine', '.hbs'); // Set the view engine to .hbs (Handlebars)
 
 // Set up session management using MongoDB store
 app.use(session({
-  name: 'server.sid', // Custom session cookie name
-  secret: process.env.SESSION_SECRET, // Secret for encrypting session data
-  resave: false, // Don't save session if not modified
-  saveUninitialized: false, // Don't create session until something is stored
-  rolling: true, // Reset session expiration on each request
+  name: 'server.sid',
+  secret: process.env.SESSION_SECRET, 
+  resave: false,
+  saveUninitialized: false, 
+  rolling: true,
   store: MongoStore.create({
-    mongoUrl: process.env.MONGO_URI, // MongoDB URI for session storage
-    ttl: 60 * 1, // Session expiry time (1 minute for example)
-    autoRemove: 'native' // Remove expired sessions automatically
+    mongoUrl: process.env.MONGO_URI,
+    ttl: 24 * 60 * 60, 
+    autoRemove: 'native' 
   }),
   cookie: {
     httpOnly: true, // Ensure the cookie is accessible only via HTTP (prevents XSS)
     secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (HTTPS)
-    maxAge: 60000 // Cookie expiration time (1 minute by default)
   }
 }));
 
@@ -96,7 +92,7 @@ app.use(async (req, res, next) => {
 
 app.use('/reservation', ensureAuthenticated, require('./reservations/reservation-routes'));
 app.use('/user', ensureAuthenticated, require('./users/user-routes'));
-app.use('/labs', ensureAuthenticated, require('./labs/labs-routes'));
+app.use('/labs', require('./labs/labs-routes'));
 app.use('/auth', require('./users/auth-routes')); // Public routes (authentication-related)
 app.use('/', require('./users/auth-routes')); 
 

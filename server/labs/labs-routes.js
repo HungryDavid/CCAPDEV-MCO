@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const  controller = require('./labs-controller');
-const { authorize } = require('../middleware/auth-middleware');
+const controller = require('./labs-controller');
+const { authorize, ensureAuthenticated } = require('../middleware/auth-middleware');
 
-router.get("/:labName/availability", controller.getSeatStatus);
 router.get('/slots-availability', controller.getAllAvailableLabs);
+router.get("/:labName/availability", controller.getSeatStatus);
 router.post('/slots-availability/:labName', controller.getLabSeats);
-
+router.use(ensureAuthenticated);
 authorize('technician');
 router.post('/manage/create', controller.createLab);
 router.get('/manage/:id/edit', controller.getLabById);

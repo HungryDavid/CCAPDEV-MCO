@@ -33,9 +33,10 @@ const loginUser = async (req, res) => {
 
         if (rememberMe) {
             req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 21; // 21 Days
-        } else {
-            req.session.cookie.expires = false; 
-        }
+            req.session.touch();
+        } 
+
+        
         res.redirect('/labs/slots-availability');
     } catch (error) {
         req.flash('error', error.message);
