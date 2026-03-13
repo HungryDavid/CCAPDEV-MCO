@@ -2,83 +2,70 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const validator = require('validator');
 
-// Define the user schema
 const userSchema = new mongoose.Schema(
   {
-    // User's full name
     name: {
       type: String,
       required: [true, 'Please provide your name'],
-      trim: true, // Remove leading/trailing spaces
+      trim: true,
     },
-    // User's email address
     email: {
       type: String,
       required: [true, 'Please provide your DLSU email'],
-      unique: true, // Ensure email is unique
-      lowercase: true, // Convert email to lowercase
+      unique: true,
+      lowercase: true,
       validate: {
         validator: (val) =>
-          validator.isEmail(val) && val.endsWith('@dlsu.edu.ph'), // Validate email format & domain
+          validator.isEmail(val) && val.endsWith('@dlsu.edu.ph'),
         message: 'Email must be a valid @dlsu.edu.ph address',
       },
     },
-    // User's ID number (should be 8 digits)
     idNumber: {
       type: String,
       required: [true, 'ID Number is required'],
-      unique: true, // Ensure ID number is unique
-      trim: true, // Remove leading/trailing spaces
-      match: [/^\d{8}$/, 'ID Number must be exactly 8 digits'], // Validate the format
+      unique: true,
+      trim: true,
+      match: [/^\d{8}$/, 'ID Number must be exactly 8 digits'],
     },
-    // User's role (either student or technician)
     role: {
       type: String,
-      enum: ['student', 'technician'], // Only these two roles are allowed
-      default: 'student', // Default role is 'student'
+      enum: ['student', 'technician'],
+      default: 'student',
     },
-    // User's password (hashed for security)
     password: {
       type: String,
       required: [true, 'Please provide a password'],
-      minlength: 8, // Minimum length of 8 characters
-      select: false, // Don't return the password by default
+      minlength: 8,
+      select: false,
     },
-    // Profile picture (default placeholder if not provided)
     profilePic: {
       type: String,
-      default: '/imgs/portraitPlaceholder.png', // Default profile picture path
+      default: '/imgs/portraitPlaceholder.png',
     },
-    // Short bio of the user
     bio: {
       type: String,
-      maxlength: 300, // Max length of 300 characters
+      maxlength: 300,
       default: '',
     },
-    // Privacy setting (whether the user wants to hide profile details)
     isPrivate: {
       type: Boolean,
-      default: false, // Default is public
+      default: false,
     },
-    // Timestamp for when the password was last changed
     passwordChangedAt: Date,
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt fields
-    toJSON: { virtuals: true }, // Include virtuals when converting to JSON
-    toObject: { virtuals: true }, // Include virtuals when converting to object
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
 
-// ─── Virtuals (References to other models) ──────────────────────────────────
 userSchema.virtual('reservations', {
-  ref: 'Reservation', // The model being referenced
-  foreignField: 'User', // Field in Reservation model that links to User
-  localField: '_id', // Local field to match
+  ref: 'Reservation',
+  foreignField: 'User',
+  localField: '_id',
 });
 
-// --- MIDDLEWARE (HOOKS) ---
-// Pre-save hook to hash the password before saving the user
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) return;
   this.password = await bcrypt.hash(this.password, 12);
@@ -87,7 +74,6 @@ userSchema.pre('save', async function () {
 userSchema.index({ email: 1, idNumber: 1 });
 
 
-//MODEL LEVEL
 userSchema.statics.doesUserExist = async function (email, idNumber) {
   const user = await this.findOne({
     $or: [{ email }, { idNumber }],
@@ -95,13 +81,11 @@ userSchema.statics.doesUserExist = async function (email, idNumber) {
   return user;
 };
 
-//DOC LEVEL
 userSchema.methods.isCorrectPassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
 
-// --- STATIC METHODS (Business Logic) ---
 userSchema.statics.createUser = async function (userData) {
   const { email, idNumber, password } = userData;
 
@@ -109,7 +93,6 @@ userSchema.statics.createUser = async function (userData) {
     throw new Error('Please fill in all fields.');
   }
 
-  // Check if email or ID number already exists
   const exisitingUser = await this.doesUserExist(email, idNumber);
 
   if (exisitingUser) {
@@ -146,8 +129,8 @@ userSchema.statics.readUserByIdSafe = function (userId) {
 
 userSchema.statics.readUserByEmailSafe = async function (query) {
   return await this.find({
-    email: { $regex: query, $options: 'i' } // Search for email matching query
-  }).select('-password'); // Exclude password from the results
+    email: { $regex: query, $options: 'i' }
+  }).select('-password');
 };
 
 userSchema.statics.readUserByEmailWithPassword = async function (email) {
@@ -159,11 +142,11 @@ userSchema.statics.readUserByEmailWithPassword = async function (email) {
 };
 
 userSchema.methods.updateUser = async function (data, filePath) {
-  if (data.bio) this.bio = data.bio; // Update bio if provided
+  if (data.bio) this.bio = data.bio;
   if (filePath) {
-    this.profilePic = filePath; // Update profile picture if provided
+    this.profilePic = filePath;
   }
-  return await this.save(); // Save the updated user data
+  return await this.save();
 };
 
 
@@ -178,19 +161,18 @@ userSchema.statics.deleteUser = async function (userId) {
     throw new Error('User not found.');
   }
 
-  await user.deleteOne(); // Delete the user document
+  await user.deleteOne();
   return true;
 };
 
 
-// Login a user with email and password
 userSchema.statics.loginUser = async function (identifier, password) {
   if (!identifier || !password) {
     throw new Error('Please provide both email/ID and password');
   }
 
-  const query = identifier.includes('@') 
-    ? { email: identifier.toLowerCase() } 
+  const query = identifier.includes('@')
+    ? { email: identifier.toLowerCase() }
     : { idNumber: identifier };
 
   const user = await this.findOne(query).select('+password');
@@ -207,7 +189,6 @@ userSchema.statics.loginUser = async function (identifier, password) {
 };
 
 
-// Find a public profile by email or ID number
 userSchema.statics.readUserSafeAndPublic = async function (identifier) {
   if (!identifier) {
     throw new Error('ID number or email is required.');
@@ -219,21 +200,16 @@ userSchema.statics.readUserSafeAndPublic = async function (identifier) {
       { idNumber: identifier }
     ]
   };
-
-  // First get only privacy flag
   const privacyCheck = await this.findOne(baseQuery).select('isPrivate');
 
   if (!privacyCheck) {
     throw new Error('User not found.');
   }
 
-  // If private, only return basic details
   if (privacyCheck.isPrivate) {
     return await this.findOne(baseQuery)
       .select('name profilePic isPrivate');
   }
-
-  // If public, return full profile excluding password
   return await this.findOne(baseQuery)
     .select('-password');
 };
@@ -253,4 +229,4 @@ userSchema.statics.getIdByStudentId = async function (idNumber) {
 };
 
 const User = mongoose.model('User', userSchema);
-module.exports = User; // Export the User model 
+module.exports = User; 

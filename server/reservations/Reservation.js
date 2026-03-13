@@ -10,7 +10,7 @@ const reservationSchema = new mongoose.Schema({
   slots: [
     {
       seatNumber: { type: Number, required: true },
-      timeSlot: { type: String, required: true } /
+      timeSlot: { type: String, required: true }
     }
   ],
   createdAt: { type: Date, default: Date.now }
@@ -28,7 +28,7 @@ reservationSchema.statics.checkSlotStatus = async function (selectedLab, selecte
   const slotStatus = {};
 
   for (const [time, seatData] of Object.entries(labCart)) {
-    const seatNumber = Number(seatData.seatNumber); // ensure number
+    const seatNumber = Number(seatData.seatNumber); 
 
     const slotMoment = moment.utc(`${selectedDate} ${time}`, 'YYYY-MM-DD HH:mm');
 
@@ -43,7 +43,7 @@ reservationSchema.statics.checkSlotStatus = async function (selectedLab, selecte
     }
 
     const isReserved = reservations.some(reservation => {
-      if (!Array.isArray(reservation.slots)) return false; // skip old/invalid documents
+      if (!Array.isArray(reservation.slots)) return false; 
 
       return reservation.slots.some(slot =>
         slot.timeSlot === time && slot.seatNumber === seatNumber

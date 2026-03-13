@@ -1,11 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('./auth-controller');
-const { 
-    ensureGuest
-} = require('../middleware/auth-middleware');
-
-console.log("At Auth-Routes");
+const {ensureGuest} = require('../middleware/auth-middleware');
 
 router.use('/logout', authController.logoutUser);
 
@@ -19,5 +15,4 @@ router.post('/register', authController.registerUser);
 router.get('/', (req, res) => {
     res.redirect('/auth/login');
 });
-// ... register routes similarly
 module.exports = router;

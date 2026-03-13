@@ -49,14 +49,9 @@ exports.deleteProfile = async (req, res) => {
 
 exports.searchUser = async (req, res) => {
   try {
-    // Get session user
     const sessionUserDoc = await User.readUserByIdSafe(req.session.userId);
     const sessionUser = sessionUserDoc ? sessionUserDoc.toObject() : null;
-
-    // Get query from URL
     const query = req.query.q?.trim() || '';
-
-    // Default: no search performed yet
     let searchedUser = null;
     let searchedUserReservation = null
     if (query) {
@@ -68,14 +63,11 @@ exports.searchUser = async (req, res) => {
         if (err.message !== 'User not found.') {
           console.error('Error fetching user:', err);
         }
-        searchedUser = null; // gracefully handle not found
+        searchedUser = null; 
       }
     }
-
-
-    
-    // Render the page (works whether query is empty or not)
-    res.render('search-profile', {
+      
+      res.render('search-profile', {
       title: 'Search Users',
       headerTitle: 'Search User',
       layout: 'dashboard',
@@ -87,7 +79,6 @@ exports.searchUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Search User Controller Error:', error);
     res.redirect('/');
   }
 };

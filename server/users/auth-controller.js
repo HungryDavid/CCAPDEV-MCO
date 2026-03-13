@@ -15,7 +15,7 @@ const getLoginPage = (req, res) => {
 //GET REGISTER
 const getRegisterPage = (req, res) => {
     const message = req.flash('error');
-    return res.render('register', {  //render body
+    return res.render('register', {  
         title: 'Register',
         layout: 'auth',
         errorMessage: message.length > 0 ? message[0] : null
@@ -34,7 +34,7 @@ const loginUser = async (req, res) => {
         if (rememberMe) {
             req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 21; // 21 Days
         } else {
-            req.session.cookie.expires = false; // Session cookie (clears on browser close)
+            req.session.cookie.expires = false; 
         }
         res.redirect('/labs/slots-availability');
     } catch (error) {
@@ -50,20 +50,14 @@ const logoutUser = (req, res) => {
         return res.redirect("/auth/login");
     }
 
-    // 1. Clear server-side session
     req.session.destroy((err) => {
-        // 2. Clear the persistent "remember" cookie
-        // You MUST use the same options (path, domain) used when creating it
         res.clearCookie('server.sid', {
             path: '/',
             httpOnly: true,
-            // Match the 'secure' setting from your app.use(session)
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax'
         });
 
-
-        // 2. Prevent Back-Button "Cache" access
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
