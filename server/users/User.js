@@ -171,7 +171,7 @@ userSchema.statics.deleteUser = async function (userId) {
     throw new Error('User ID is required.');
   }
 
-  const user = await this.readUserById(userId);
+  const user = await this.readUserByIdSafe(userId);
 
   if (!user) {
     throw new Error('User not found.');
