@@ -2,16 +2,10 @@ const Laboratory = require('./Lab');
 const Reservation = require('../reservations/Reservation');
 const { getTimeSlots, renderErrorPage } = require('../util/helpers');
 
-
-
-
 exports.getManageLabsPage = async (req, res) => {
   try {
-    // Fetch all labs from the database
     const labs = await Laboratory.getAllLabs(req.query);
-    console.log(labs);  // Log the labs data to check what you're receiving
-
-    // Render the page with labs data
+    console.log(labs);  
     res.render('manage-labs', {
       title: 'Manage Labs',
       headerTitle: 'Manage Labs',
@@ -39,7 +33,6 @@ exports.getAllAvailableLabs = async (req, res) => {
     const availableLabsNoRoomFilter = await Laboratory.getAvailableLabs(selectedDate, selectedTime);
     const labNamesArray = availableLabsNoRoomFilter.map(lab => lab.name);
 
-    console.log(selectedDate, selectedTime);
     res.render('slots-availability', {
       title: 'Slots Availability',
       headerTitle: 'Slots Availability',
@@ -55,37 +48,30 @@ exports.getAllAvailableLabs = async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
     res.redirect('/esfefw');
   }
 };
 
 
-// 1. CREATE: Create a new lab
-
 exports.createLab = async (req, res) => {
   try {
     const { name, capacity, openTime, closeTime, image } = req.body;
 
-    // Create the lab
     const labData = {
       name,
       capacity,
       openTime,
       closeTime,
-      image: image || 'lab-default.jpg' // Use default image if not provided
+      image: image || 'lab-default.jpg'
     };
 
     const newLab = await Laboratory.createLab(labData);
-    res.redirect('/labs/manage'); // Redirect to the list of labs after creating
+    res.redirect('/labs/manage');
   } catch (error) {
-    console.error(error);
     res.status(500).send('Error creating lab');
   }
 };
 
-
-// 3. READ ONE: Get a specific lab by ID for editing
 exports.getLabById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -93,20 +79,18 @@ exports.getLabById = async (req, res) => {
     if (!lab) {
       return res.status(404).send('Lab not found');
     }
-    res.render('/labs/manage', { lab }); // Pass lab to edit form view
+    res.render('/labs/manage', { lab }); 
   } catch (error) {
     console.error(error);
     res.status(500).send('Error fetching lab for editing');
   }
 };
 
-// 4. UPDATE: Update a lab's details
 exports.updateLab = async (req, res) => {
   try {
-    const labId = req.params.id;  // Get the lab ID from the URL
-    const { name, openTime, closeTime, capacity } = req.body;  // Extract data from the form submission
+    const labId = req.params.id; 
+    const { name, openTime, closeTime, capacity } = req.body; 
 
-    // Call the updateLab method from the model
     const updatedLab = await Laboratory.updateLab(labId, {
       name,
       openTime,
@@ -114,8 +98,7 @@ exports.updateLab = async (req, res) => {
       capacity
     });
 
-    // Redirect back to the labs page with updated lab list
-    res.redirect('/labs/manage');  // Adjust if needed to the correct route
+    res.redirect('/labs/manage'); 
 
   } catch (error) {
     console.error(error);
@@ -133,7 +116,7 @@ exports.deleteLab = async (req, res) => {
       return res.status(404).send('Lab not found');
     }
 
-    res.redirect('/labs/manage'); // Redirect to labs list after successful deletion
+    res.redirect('/labs/manage'); 
   } catch (error) {
     res.status(500).send('Error deleting lab');
   }
@@ -154,15 +137,15 @@ exports.getLabSeats = async (req, res) => {
 
     if (reservationId) {
       reservation = await Reservation.getReservationById(reservationId); 4
-      selectedTime = reservation.slots?.[0]?.timeSlot; // first slot's time
-      selectedLabName = reservation.laboratory?.name; // safely access name
+      selectedTime = reservation.slots?.[0]?.timeSlot; 
+      selectedLabName = reservation.laboratory?.name; 
       selectedDate = reservation.date;
       
       cartSession = {}
       reservation.slots.forEach(slot => {
         cartSession[slot.timeSlot] = {
-          seatNumber: String(slot.seatNumber), // convert to string to match your session format
-          status: 'checking...'                  // or 'reserved', depending on your logic
+          seatNumber: String(slot.seatNumber), 
+          status: 'checking...'
         };
       });
     } 
@@ -173,8 +156,6 @@ exports.getLabSeats = async (req, res) => {
     const labSeats = await Laboratory.getLabSeats(selectedLabName, selectedTime, selectedDate);
     const timeSlotsArray = getTimeSlots(30, lab.openTime, lab.closeTime, selectedDate);
   
-
-    console.log(labSeats);
     res.render("lab-details", {
       labSeats,
       selectedDate,
@@ -189,7 +170,6 @@ exports.getLabSeats = async (req, res) => {
       isTechnician: req.session.role === "technician"
     });
   } catch (err) {
-    console.log(err);
     renderErrorPage(res, err);
   }
 };
@@ -204,7 +184,6 @@ exports.getSeatStatus = async (req, res) => {
     return res.json(labSeats);
 
   } catch (err) {
-    console.error("Error fetching lab details:", err);
     res.redirect("/");
   }
 };
@@ -224,7 +203,6 @@ function getNextNDates(n = 7) {
 
     dates.push(`${yyyy}-${mm}-${dd}`);
   }
-
   return dates;
 }
 

@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const Reservation = require('../reservations/Reservation'); // adjust the path to your model
-const moment = require('moment'); // You can use moment.js for easier date handling
+const Reservation = require('../reservations/Reservation'); 
+const moment = require('moment'); 
 const CustomError = require('../util/CustomError');
 
 const laboratorySchema = new mongoose.Schema({
@@ -41,12 +41,10 @@ laboratorySchema.virtual('reservations', {
   localField: '_id'
 });
 
-// Check if lab exists
 laboratorySchema.statics.doesLabExist = function (name) {
   return this.findOne({ name });
 };
 
-// Create a new lab
 laboratorySchema.statics.createLab = async function (labData) {
   if (!labData.name) {
     throw new Error("Lab name is required");
@@ -60,7 +58,6 @@ laboratorySchema.statics.createLab = async function (labData) {
   return await this.create(labData);
 };
 
-// Get all labs
 laboratorySchema.statics.getAllLabs = function (queryObj) {
   const excludedFields = ['page', 'sort', 'limit', 'fields'];
   const filterData = { ...queryObj };
@@ -69,13 +66,11 @@ laboratorySchema.statics.getAllLabs = function (queryObj) {
   return this.find(filterData).lean();
 };
 
-// Get one lab by ID
 laboratorySchema.statics.getLabById = async function (id) {
   // Use lean() to return a plain JavaScript object
   return await this.findById(id).lean();
 };
 
-// Update lab by ID
 laboratorySchema.statics.updateLab = function (id, updateData) {
   return this.findByIdAndUpdate(id, updateData, {
     new: true,
@@ -83,7 +78,6 @@ laboratorySchema.statics.updateLab = function (id, updateData) {
   });
 };
 
-// **Hard delete lab by ID**
 laboratorySchema.statics.deleteLab = function (id) {
   return this.findByIdAndDelete(id);
 };
@@ -93,7 +87,7 @@ laboratorySchema.statics.getIdByName = async function (labName) {
   if (!lab) {
     throw new Error(`Lab with name "${labName}" not found`);
   }
-  return await lab._id; // Return the ObjectId
+  return await lab._id; 
 };
 
 
@@ -104,29 +98,18 @@ laboratorySchema.statics.getIdByName = async function (labName) {
  * @param {Array} requestedSlots 
  * @returns {Boolean}
  */
-
 laboratorySchema.statics.areSeatsAvailable = async function (labName, date, timeSlots, seatNumbers) {
   try {
-    console.log('--- areSeatsAvailable Debug ---');
-    console.log('Lab Name:', labName);
-    console.log('Date:', date);
-    console.log('Requested Time Slots:', timeSlots);
-    console.log('Requested Seats:', seatNumbers);
-
-    // 1️⃣ Find the laboratory
+    // Find the laboratory
     const lab = await this.findOne({ name: labName });
     if (!lab) throw new Error(`Laboratory "${labName}" not found.`);
-    console.log('Lab found:', lab._id.toString(), 'Capacity:', lab.capacity);
 
-    // 2️⃣ Query reservations for that lab & date
+    // Query reservations for that lab & date
     const Reservation = mongoose.model('Reservation');
     const existingReservations = await Reservation.find({ laboratory: lab._id, date });
-    console.log('Existing Reservations:', existingReservations.length);
 
-    // 3️⃣ Check each requested time slot for seat conflicts
+    // 3Check each requested time slot for seat conflicts
     for (const time of timeSlots) {
-      console.log(`Checking time slot: ${time}`);
-
       // Get all seats already reserved at this time
       const reservedSeats = existingReservations
         .flatMap(r => r.slots
@@ -134,20 +117,14 @@ laboratorySchema.statics.areSeatsAvailable = async function (labName, date, time
           .map(s => s.seatNumber)
         );
 
-      console.log(`Reserved seats for time ${time}:`, reservedSeats);
-
       // Check if any requested seat is already taken
       const conflict = seatNumbers.some(seat => reservedSeats.includes(seat));
       if (conflict) {
-        console.log(`Conflict found for seats ${seatNumbers} at time ${time}`);
         return false;
       }
     }
-
-    console.log('No conflicts found. Seats are available.');
     return true;
   } catch (err) {
-    console.error('Error in areSeatsAvailable:', err);
     throw err;
   }
 };
@@ -155,7 +132,6 @@ laboratorySchema.statics.areSeatsAvailable = async function (labName, date, time
 laboratorySchema.statics.getAvailableLabs = async function (bookingDate, bookingTime, rooms = null) {
   const Reservation = mongoose.model("Reservation");
 
-  // 1️⃣ Filter labs if rooms array is provided
   let labFilter = {};
   if (Array.isArray(rooms)) {
     const filteredRooms = rooms.filter(r => r);
@@ -169,15 +145,12 @@ laboratorySchema.statics.getAvailableLabs = async function (bookingDate, booking
 
   const labIds = labs.map(lab => lab._id);
 
-  // 2️⃣ Find reservations for the date
   const reservations = await Reservation.find({
     laboratory: { $in: labIds },
     date: bookingDate
   }).lean();
 
-  // 3️⃣ Process labs
   const availableLabs = labs.map(lab => {
-    // Check if bookingTime is within lab operating hours
     const open = moment(lab.openTime, "HH:mm");
     const close = moment(lab.closeTime, "HH:mm");
     const booking = moment(bookingTime, "HH:mm");
@@ -186,12 +159,10 @@ laboratorySchema.statics.getAvailableLabs = async function (bookingDate, booking
       return null; // booking time not within lab schedule
     }
 
-    // Reservations for this lab
     const labReservations = reservations.filter(
       r => r.laboratory.toString() === lab._id.toString()
     );
 
-    // Collect reserved seats at the specific bookingTime
     const reservedSeats = labReservations.flatMap(r =>
       r.slots
         .filter(s => s.timeSlot === bookingTime)
@@ -212,7 +183,7 @@ laboratorySchema.statics.getAvailableLabs = async function (bookingDate, booking
       image
     };
   })
-  .filter(lab => lab && lab.freeSeats > 0); // remove null + full labs
+  .filter(lab => lab && lab.freeSeats > 0); 
 
   return availableLabs;
 };
@@ -225,13 +196,11 @@ laboratorySchema.statics.getLabSeats = async function(labName, timeSlot, date) {
   const query = { laboratory: lab._id, date };
   if (timeSlot) query["slots.timeSlot"] = timeSlot;
 
-  // Populate studentId and include idNumber field
   const reservations = await Reservation.find(query).populate({ 
     path: 'studentId', 
-    select: 'name idNumber'  // <-- fetch idNumber from User
+    select: 'name idNumber' 
   });
 
-  // Build seat map
   const seatMap = new Map();
   reservations.forEach(res => {
     res.slots.forEach(slot => {
@@ -253,11 +222,8 @@ laboratorySchema.statics.getLabSeats = async function(labName, timeSlot, date) {
   const seatStatus = [];
   for (let seat = 1; seat <= lab.capacity; seat++) {
     const seatStr = seat.toString();
-
-    // Default status
     let status = seatMap.get(seatStr)?.status || 'available';
 
-    // If timeSlot is passed, mark as expired
     if (timeSlot) {
       const slotMoment = moment(`${date} ${timeSlot}`, 'YYYY-MM-DD HH:mm');
       if (slotMoment.isBefore(new Date())) {
@@ -267,7 +233,7 @@ laboratorySchema.statics.getLabSeats = async function(labName, timeSlot, date) {
 
     seatStatus.push({
       seatNumber: seat,
-      user: seatMap.get(seatStr)?.user || { name: null, id: null, idNumber: null }, // <-- default includes idNumber
+      user: seatMap.get(seatStr)?.user || { name: null, id: null, idNumber: null }, 
       status
     });
   }
