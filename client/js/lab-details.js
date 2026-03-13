@@ -21,6 +21,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const isAnonymousCheckbox = document.getElementById("isAnonymous");
 
 
+  update();
+
   const cartInput = document.getElementById("cartSessionInput");
   if (cartInput && cartInput.value) {
     try {
@@ -40,12 +42,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
   seatButtons.forEach(button => {
     button.addEventListener('click', function (event) {
-      event.preventDefault(); // prevent form submission
+      event.preventDefault();
 
       const seatNumber = button.dataset.seat;
       bookingTime = bookingTimeElement.value;
 
-      const studentIdNumber = button.dataset.studentId; // idNumber from backend
+      const studentIdNumber = button.dataset.studentId; 
 
       if (studentIdNumber) {
         window.location.href = `/user/search?q=${encodeURIComponent(studentIdNumber)}`;
@@ -146,7 +148,6 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   bookingTimeElement?.addEventListener("change", () => {
-    console.log("UPDATE");
     update();
   });
 
@@ -180,9 +181,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (!seatButton) return;
 
-      if (seat.status === "reserved") {
+      if (seat.status === "reserved" || (seat.status === "expired" && seat.user.name)) {
         seatButton.classList.remove("btn-outline-primary");
         seatButton.classList.add("btn-outline-danger");
+        seatButton.dataset.studentId = seat.user.idNumber;
         seatButton.title = seat.user?.name || "Unknown";
         seatButton.textContent = seat.user?.name || "Unknown";
       } else if (seat.status === "available") {
@@ -314,7 +316,6 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!seatNumber) return alert("Seat number is required!");
 
     seatNumberInput.value = seatNumber;
-    alert(seatNumberInput.value);
     document.querySelector("#timeSelectForm").submit();
   });
 

@@ -171,6 +171,8 @@ laboratorySchema.statics.getAvailableLabs = async function (bookingDate, booking
     if (lab.name.startsWith("GK")) image = "/imgs/gk-building.jpg";
     else if (lab.name.startsWith("LS")) image = "/imgs/ls-building.png";
     else if (lab.name.startsWith("VL")) image = "/imgs/vl-building.jpg";
+    else if (lab.name.startsWith("AG")) image = "/imgs/ag-building.jpg";
+    else image = "/imgs/logo.png";
 
     return {
       ...lab,
