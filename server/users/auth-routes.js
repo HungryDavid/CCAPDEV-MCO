@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authController = require('./auth-controller');
 
+router.get('/about', authController.getAboutUsPage);
 router.use('/logout', authController.logoutUser);
 router.get('/login', authController.getLoginPage);
 router.post('/login', authController.loginUser);

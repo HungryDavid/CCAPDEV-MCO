@@ -1,10 +1,16 @@
 
 const User = require('./User');
 
+
+const getAboutUsPage = (req, res) => {
+    res.render('about', {
+        layout: 'plain',
+    });
+};
+
 //GET LOGIN
 const getLoginPage = (req, res) => {
     const message = req.flash('error');
-    console.log("getLoginPage");
     res.render('login', {
         title: 'Login',
         layout: 'auth',
@@ -80,6 +86,7 @@ const registerUser = async (req, res) => {
 
 
 module.exports = {
+    getAboutUsPage,
     getLoginPage,
     getRegisterPage,
     loginUser,
