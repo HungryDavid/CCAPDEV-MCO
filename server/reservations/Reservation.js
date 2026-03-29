@@ -59,7 +59,7 @@ reservationSchema.statics.getUserPastReservations = async function (userId) {
         {
           $and: [
             { date: todayStr },
-            { 'slots.endTime': { $not: { $gt: currentMinutes } } }
+            { 'slots.startTime': { $not: { $gt: currentMinutes } } }
           ]
         }
       ]
@@ -84,7 +84,7 @@ reservationSchema.statics.getUpcomingUserReservations = async function (userId) 
         { date: { $gt: todayStr } }, 
         {
           date: todayStr,
-          'slots.endTime': { $gt: currentMinutes } 
+          'slots.startTime': { $gt: currentMinutes } 
         }
       ]
     }).populate('laboratory', 'name').lean();

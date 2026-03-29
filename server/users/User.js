@@ -14,7 +14,6 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: [true, 'Please provide your DLSU email'],
-      unique: true,
       lowercase: true,
       validate: {
         validator: (val) =>
@@ -25,7 +24,6 @@ const userSchema = new mongoose.Schema(
     idNumber: {
       type: String,
       required: [true, 'ID Number is required'],
-      unique: true,
       trim: true,
       match: [/^\d{8}$/, 'ID Number must be exactly 8 digits'],
     },
@@ -48,6 +46,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       maxlength: 300,
       default: '',
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
     },
     passwordChangedAt: Date,
   },
@@ -74,7 +76,10 @@ userSchema.methods.isCorrectPassword = async function (candidatePassword) {
 //Finds a user by either their email address or their unique ID number
 userSchema.statics.findUserByEmailOrIdNumber = async function (email, idNumber) {
   const user = await this.findOne({
-    $or: [{ email }, { idNumber }],
+    $and: [
+      { $or: [{ email }, { idNumber }] },
+      { isDeleted: { $ne: true } }
+    ]
   });
   return user;
 };
@@ -102,7 +107,7 @@ userSchema.statics.createUser = async function (email, idNumber, password) {
     .join(' ');
 
 
-  const newUser = await this.create({email, idNumber, password, name, role,});
+  const newUser = await this.create({ email, idNumber, password, name, role, });
 
   return newUser;
 };
@@ -116,11 +121,13 @@ userSchema.statics.loginUser = async function (identifier, password) {
   const query = identifier.includes('@')
     ? { email: identifier.toLowerCase() }
     : { idNumber: identifier };
+    
+  query.isDeleted = { $ne: true };
 
   const user = await this.findOne(query).select('+password');
 
   if (!user) {
-    throw new Error('Invalid credentials');
+    throw new Error('User does not exist');
   }
 
   const isMatch = await user.isCorrectPassword(password);
@@ -128,7 +135,7 @@ userSchema.statics.loginUser = async function (identifier, password) {
   if (!isMatch) {
     throw new Error('Invalid credentials');
   }
-  
+
   return user;
 };
 
@@ -144,8 +151,23 @@ userSchema.statics.deleteUser = async function (userId) {
     throw new CustomError(404, 'Not Found', 'User not found.');
   }
 
-  await Reservation.deleteMany({ studentId: user._id });
-  await this.findOneAndDelete({ _id: user._id });
+  const now = new Date();
+  const currentMinutes = (now.getHours() * 60) + now.getMinutes()
+  const todayStr = now.toISOString().split('T')[0];
+
+  await Reservation.deleteMany({
+    studentId: user._id,
+    $or: [
+      { date: { $gt: todayStr } },
+      {
+        date: todayStr,
+        'slots.endTime': { $gt: currentMinutes }
+      }
+    ]
+  });
+  
+  user.isDeleted = true;
+  await user.save();
   return true;
 };
 
@@ -159,12 +181,19 @@ userSchema.statics.searchUser = async function (identifier) {
     ? { email: identifier.toLowerCase() }
     : { idNumber: identifier };
 
+  query.isDeleted = { $ne: true };
+
   return await this.findOne(query).select('-password -role').lean();
 };
 
 //fetches a user by their unique ID and excludes sensitive information like password and role
 userSchema.statics.getUserById = async function (id) {
-  return await this.findById(id).select('-password').lean();
+  return await this.findOne({ 
+    _id: id, 
+    isDeleted: { $ne: true } 
+  })
+  .select('-password')
+  .lean();
 };
 
 //updates a user's profile information such as their bio and profile picture
@@ -177,17 +206,20 @@ userSchema.methods.updateUser = async function (bio, filePath) {
 };
 
 //get user by student Id
-userSchema.statics.getUserByStudentId = async (studentId) => {
+userSchema.statics.getUserByStudentId = async function (studentId) {
   try {
-    const user = await User.findOne({ idNumber: studentId });
+    const user = await this.findOne({ 
+      idNumber: studentId, 
+      isDeleted: { $ne: true } 
+    });
 
     if (!user) {
-      console.log('No user found with that ID');
       return null;
     }
+    
     return user;
   } catch (err) {
-    console.error('Error fetching user:', err);
+    throw err; 
   }
 };
 

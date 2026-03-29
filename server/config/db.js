@@ -91,34 +91,40 @@ const seedDatabase = async () => {
     const localISODate = new Date(now - offset).toISOString().split('T')[0];
     const totalMinutes = (now.getHours() * 60) + now.getMinutes();
     const roundedMinutes = Math.floor(totalMinutes / 30) * 30;
+
+    const startMinutesMinus30 = (roundedMinutes - 30) % 1440;
+    const startMinutesNow = roundedMinutes% 1440;
+    const startMinutesPlus30 = (roundedMinutes + 30) % 1440;
+    const startMinutesPlus60 = (roundedMinutes + 60) % 1440;
+    const startMinutesPlus90 = (roundedMinutes + 90) % 1440;
+
+
+    const endRoundedMinutes0 = (roundedMinutes) % 1440;
+    const endRoundedMinutes30 = (roundedMinutes + 30) % 1440;
+    const endRoundedMinutes60 = (roundedMinutes + 60) % 1440;
+    const endRoundedMinutes90 = (roundedMinutes + 90) % 1440;
+    
     const reservations = [
-        {
-            studentId: john._id,
-            laboratory: gk301._id,
-            date: localISODate,
-            anonymous: false,
-            slots: [{ seatNumber: 1, startTime: roundedMinutes, endTime: roundedMinutes + 30 }]
-        },
         {
             studentId: jane._id,
             laboratory: gk301._id,
             date: localISODate,
             anonymous: false,
-            slots: [{ seatNumber: 2, startTime: roundedMinutes, endTime: roundedMinutes + 30 }]
+            slots: [{ seatNumber: 2, startTime: startMinutesNow, endTime: endRoundedMinutes30 }]
         },
         {
             studentId: john._id,
             laboratory: gk301._id,
             date: localISODate,
             anonymous: false,
-            slots: [{ seatNumber: 3, startTime: roundedMinutes+30, endTime: roundedMinutes + 60 }]
+            slots: [{ seatNumber: 3, startTime: startMinutesPlus30, endTime: endRoundedMinutes60 }]
         },
         {
             studentId: john._id,
             laboratory: gk301._id,
             date: localISODate,
             anonymous: false,
-            slots: [{ seatNumber: 4, startTime: roundedMinutes+60, endTime: roundedMinutes + 90}]
+            slots: [{ seatNumber: 4, startTime: startMinutesPlus60, endTime: endRoundedMinutes90}]
         }
         ,
         {
@@ -126,28 +132,28 @@ const seedDatabase = async () => {
             laboratory: vl205._id,
             date: localISODate,
             anonymous: false,
-            slots: [{ seatNumber: 5, startTime: roundedMinutes, endTime: roundedMinutes + 30 }]
+            slots: [{ seatNumber: 5, startTime: startMinutesNow, endTime: endRoundedMinutes30 }]
         },
         {
             studentId: carl._id,
             laboratory: gk302._id,
             date: localISODate,
             anonymous: false,
-            slots: [{ seatNumber: 6, startTime: roundedMinutes, endTime: roundedMinutes + 30 }]
+            slots: [{ seatNumber: 6, startTime: startMinutesNow, endTime: endRoundedMinutes30 }]
         },
         {
             studentId: juan._id,
             laboratory: gk303._id,
             date: localISODate,
             anonymous: false,
-            slots: [{ seatNumber: 6, startTime: roundedMinutes, endTime: roundedMinutes + 30 }]
+            slots: [{ seatNumber: 6, startTime: startMinutesNow, endTime: endRoundedMinutes30 }]
         },
         {
             studentId: john._id,
             laboratory: gk301._id,
             date: localISODate,
             anonymous: false,
-            slots: [{ seatNumber: 1, startTime: roundedMinutes-30, endTime: roundedMinutes}]
+            slots: [{ seatNumber: 1, startTime: startMinutesMinus30, endTime: endRoundedMinutes0}]
         }
     ];
 
